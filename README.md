@@ -31,7 +31,7 @@ Disease, modality, model, source type, and deployment setting remain deliberatel
 
 ## Quick start
 
-From this directory with Python 3.9 or later:
+From this directory with Python 3.10 or later:
 
 ```bash
 python -m pip install -e '.[dev]'

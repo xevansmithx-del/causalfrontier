@@ -6,10 +6,11 @@ Validated locally on 2026-08-28. This record covers software behavior and the sy
 
 | Check | Result |
 |---|---|
-| Minimum runtime | Python 3.9.6: 77 passed and `compileall` pass |
+| Minimum runtime | Python 3.10.20: 77 passed and `compileall` pass |
 | Main runtime | Python 3.13.13: 77 passed |
 | Pytest | 77 passed on each validated runtime |
 | Statement coverage | 85% (85.19% exact) on each validated runtime |
+| Package, API, and compiler version | `0.1.0a2` exact |
 | Ruff 0.16.5 | Check and format pass |
 | Normal assertion-independent probe | Pass |
 | `python -O` assertion-independent probe | Pass |
@@ -21,8 +22,8 @@ Validated locally on 2026-08-28. This record covers software behavior and the sy
 Frozen synthetic fixture result:
 
 ```text
-run_id 80fd18eade206f90efe8f30bfcd6e3cecb18d0474591b119b26cbba4b5153d9d
-verification_sha256 42ce7ec9d516f83d68b625e6966d646c49303b41230eaf5d0f87ac01418807a6
+run_id 0a28022c6e31be13d09a57a3d5bdddfc644962740e032183f441827572faf7c0
+verification_sha256 4f3935331642c4699aa18378df4834a1d45ecdb54a0d59ec6cf318ca0374a3f5
 structurally_admissible_unexecuted experiment:held-out-invariance, experiment:negative-control
 classifier_results_sha256 dd052e01cdd4d9f3102f61dbdf11bedf822f0bdacf927c2983734e30cb68c15a
 ```
@@ -41,6 +42,7 @@ These are deterministic classifications of invented integers under authored thre
 
 ```bash
 uv sync --frozen --extra dev
+uv lock --check
 uv run --frozen --no-sync pytest --disable-socket --allow-unix-socket \
   --cov=causalfrontier --cov-report=term-missing --cov-fail-under=80
 uv run --frozen --no-sync python -m compileall -q src tests
@@ -51,6 +53,24 @@ uv run --frozen --no-sync python -O tests/optimized_probe.py
 ```
 
 Publication CI additionally builds the wheel and source distribution, runs `twine check`, installs artifacts in clean environments, validates the repository-scoped source manifest, scans allowlisted text for private material, and executes the installed CLI. Release artifacts receive a separate SHA-256 manifest.
+
+## Supported-marker lock audit
+
+`uv.lock` requires Python 3.10 or later and has no Python 3.9-only resolution branch.
+The supported lock graph contains one unmarked entry for each audited package:
+
+| Package | Locked version | Required floor | Result |
+|---|---:|---:|---|
+| cryptography | 50.0.1 | 50 | Pass |
+| setuptools | 84.0.0 | 83 | Pass |
+| urllib3 | 2.7.0 | 2.7 | Pass |
+| pytest | 9.1.1 | 9.0.3 | Pass |
+| requests | 2.34.2 | 2.33 | Pass |
+| filelock | 3.32.4 | 3.20.3 | Pass |
+
+No entry below these GitHub-reported advisory thresholds remains in a supported
+marker. These packages belong to the locked development and publication environment;
+the installable CausalFrontier package continues to have zero runtime dependencies.
 
 ## Hostile coverage
 

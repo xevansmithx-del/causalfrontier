@@ -2,6 +2,18 @@
 
 All notable changes to CausalFrontier are documented here.
 
+## 0.1.0-alpha.2 — 2026-08-28
+
+- Drop end-of-life Python 3.9 support and require Python 3.10 or later.
+- Raise the packaging floor to patched Setuptools 83 or later and refresh the
+  development lock so GitHub-reported advisories do not remain in supported
+  environments. The installable package continues to have zero runtime dependencies.
+- Refresh the pinned setup-uv and CodeQL action revisions.
+- Remove end-of-life-only lock branches and keep every supported lock entry above the
+  audited cryptography, Setuptools, urllib3, pytest, requests, and filelock advisory
+  floors.
+- Make paired structural iteration strict so internal length drift fails closed.
+
 ## 0.1.0-alpha.1 — 2026-08-28
 
 - Add strict frozen-case inventories, declared competing causal worlds, one required

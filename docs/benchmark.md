@@ -35,10 +35,10 @@ Every discriminator has two informative branches plus contradiction, execution f
 
 ## Frozen expected result
 
-With CausalFrontier `0.1.0a1`, the exact baseline run identifier is:
+With CausalFrontier `0.1.0a2`, the exact baseline run identifier is:
 
 ```text
-80fd18eade206f90efe8f30bfcd6e3cecb18d0474591b119b26cbba4b5153d9d
+0a28022c6e31be13d09a57a3d5bdddfc644962740e032183f441827572faf7c0
 ```
 
 The structurally-admissible-unexecuted and conditional-scientific-structure Pareto frontiers both contain:

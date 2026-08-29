@@ -220,8 +220,12 @@ def _dominates(left: Dict[str, Any], right: Dict[str, Any]) -> bool:
         right["conditional_worst_remaining_decision_class_count"],
         *_resource_tuple(right),
     )
-    no_worse = all(a >= b for a, b in zip(left_max, right_max)) and all(a <= b for a, b in zip(left_min, right_min))
-    strict = any(a > b for a, b in zip(left_max, right_max)) or any(a < b for a, b in zip(left_min, right_min))
+    no_worse = all(a >= b for a, b in zip(left_max, right_max, strict=True)) and all(
+        a <= b for a, b in zip(left_min, right_min, strict=True)
+    )
+    strict = any(a > b for a, b in zip(left_max, right_max, strict=True)) or any(
+        a < b for a, b in zip(left_min, right_min, strict=True)
+    )
     return no_worse and strict
 
 
