@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use CausalFrontier, cite this software and the exact version, case digest, and capsule run identifier you ran."
+title: "CausalFrontier: structural compiler for frozen causal-world discrimination plans"
+type: software
+authors:
+  - family-names: Smith
+    given-names: Evan
+version: 0.1.0-alpha.1
+date-released: 2026-08-28
+license: Apache-2.0
+repository-code: "https://github.com/xevansmithx-del/causalfrontier"
+url: "https://github.com/xevansmithx-del/causalfrontier"
+keywords:
+  - bioinformatics
+  - causal models
+  - experimental design
+  - provenance
+  - reproducible research

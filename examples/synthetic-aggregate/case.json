@@ -1,0 +1,219 @@
+{
+  "schema_version": "causalfrontier.case.v1",
+  "case_id": "synthetic-aggregate-response",
+  "title": "Synthetic aggregate response discriminator benchmark",
+  "frozen_at": "2026-08-28T21:00:00Z",
+  "evidence_cutoff": "2026-08-28T20:59:00Z",
+  "fixed_parameter": "OPEN_MACHINE_VERIFIABLE_TRANSLATION_FROM_FRAGMENTED_BIOMEDICAL_EVIDENCE_TO_NEXT_FALSIFIABLE_ACTION",
+  "purpose": "Test whether a frozen aggregate evidence package can produce an auditable next falsification action without importing priors or clinical authority.",
+  "boundary": {
+    "clinical_authority": false,
+    "human_decision_authority": false,
+    "material_execution_authority": false,
+    "patient_level_data": false,
+    "prospective_benchmark_cases_scored_n": 0,
+    "prospective_experiments_executed_n": 0,
+    "prospective_results_recorded": false
+  },
+  "provenance": [
+    {
+      "id": "source:synthetic-aggregate-v1",
+      "path": "evidence/aggregate_response.tsv",
+      "sha256": "e0035faad7a9ade27d6d6e259e338208d68cec0ce4211361ad9b92e9b3dea627",
+      "data_class": "SYNTHETIC",
+      "authority": "SYNTHETIC_DATA",
+      "license": "CC0-1.0 synthetic fixture",
+      "description": "Small aggregate table invented for software behavior testing; it is not biological evidence.",
+      "source_locator": "synthetic:aggregate-response-v1",
+      "submitted_query": "NOT_APPLICABLE_SYNTHETIC_FIXTURE",
+      "executed_query": "NOT_APPLICABLE_SYNTHETIC_FIXTURE",
+      "knowledge_date": "2026-08-28T20:55:00Z",
+      "retrieved_at": "2026-08-28T20:58:00Z",
+      "temporal_basis": "SYNTHETIC_CREATION_DATE",
+      "retrieval_state": "COMPLETE",
+      "semantic_state": "SYNTHETIC_FIXTURE_ONLY",
+      "coverage_complete": true
+    }
+  ],
+  "decision": {
+    "id": "decision:next-read-only-check",
+    "question": "Which read-only falsification lane should remain eligible for the next benchmark iteration?",
+    "defer_option_id": "option:defer",
+    "options": [
+      {"id": "option:audit-context", "label": "Audit context-linked confounding"},
+      {"id": "option:defer", "label": "Defer and expand the world partition"},
+      {"id": "option:test-invariance", "label": "Test response invariance"}
+    ]
+  },
+  "world_partition": "DECLARED_MUTUALLY_EXCLUSIVE_COLLECTIVELY_EXHAUSTIVE_WITH_RESIDUAL",
+  "worlds": [
+    {
+      "id": "world:context-confounding",
+      "label": "The aggregate response is primarily explained by context-linked confounding.",
+      "is_residual": false,
+      "admissible_option_ids": ["option:audit-context", "option:defer"],
+      "source_ids": ["source:synthetic-aggregate-v1"]
+    },
+    {
+      "id": "world:invariant-mechanism",
+      "label": "The aggregate response is invariant enough to justify another mechanism-oriented read-only check.",
+      "is_residual": false,
+      "admissible_option_ids": ["option:defer", "option:test-invariance"],
+      "source_ids": ["source:synthetic-aggregate-v1"]
+    },
+    {
+      "id": "world:residual",
+      "label": "An unenumerated explanation accounts for the aggregate pattern.",
+      "is_residual": true,
+      "admissible_option_ids": ["option:defer"],
+      "source_ids": ["source:synthetic-aggregate-v1"]
+    }
+  ],
+  "gates": [
+    {"id": "gate:no-clinical-use", "label": "No patient or clinical use", "state": "SATISFIED", "authority": "SOFTWARE"},
+    {"id": "gate:read-only", "label": "Read-only computation only", "state": "SATISFIED", "authority": "SOFTWARE"},
+    {"id": "gate:synthetic-only", "label": "Synthetic aggregate fixture only", "state": "SATISFIED", "authority": "SYNTHETIC_DATA"}
+  ],
+  "experiments": [
+    {
+      "id": "experiment:global-recompute",
+      "label": "Recompute the aggregate contrast across all declared contexts",
+      "protocol": "Recompute integer response contrasts across the three frozen contexts and classify against the predeclared total branches.",
+      "execution_class": "READ_ONLY_COMPUTATION",
+      "required_gate_ids": ["gate:no-clinical-use", "gate:read-only", "gate:synthetic-only"],
+      "required_authorities": ["SOFTWARE", "SYNTHETIC_DATA"],
+      "resources": {"duration_minutes": 40, "compute_units": 8, "external_dependencies": 2, "reversibility_risk": 0, "authority_burden": 0},
+      "classifier": {
+        "schema_version": "causalfrontier.classifier.v1",
+        "engine": "BUILTIN_TSV_INTEGER_V1",
+        "source_id": "source:synthetic-aggregate-v1",
+        "input_columns": ["context", "intervention", "response_index", "negative_control_index"],
+        "rule": {"kind": "GROUPED_CONTRAST_RANGE_V1", "group_column": "context", "intervention_column": "intervention", "value_column": "response_index", "candidate_value": "candidate", "comparator_value": "comparator", "minimum_groups": 3, "low_max": 2, "high_min": 3},
+        "outcome_map": {"CONTRADICTION": "outcome:global-contradiction", "FAILURE": "outcome:global-failure", "NO_CALL": "outcome:global-no-call", "LOW": "outcome:global-invariant", "HIGH": "outcome:global-context"}
+      },
+      "classifier_sha256": "56ce6a2a1fb44ffe1ccf84d066fc1ac278fe867c421c76aec53fa0e70b818c03",
+      "outcome_partition": "PREDECLARED_TOTAL_WITH_CONTRADICTION_FAILURE_AND_NO_CALL",
+      "outcomes": [
+        {"id": "outcome:global-contradiction", "label": "Pattern contradicts every named world", "class": "CONTRADICTION"},
+        {"id": "outcome:global-context", "label": "Contrast varies with declared context", "class": "INFORMATIVE"},
+        {"id": "outcome:global-failure", "label": "Read-only recomputation fails", "class": "FAILURE"},
+        {"id": "outcome:global-invariant", "label": "Contrast is stable across declared context", "class": "INFORMATIVE"},
+        {"id": "outcome:global-no-call", "label": "Decision rule returns no call", "class": "NO_CALL"}
+      ],
+      "predictions": [
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:global-contradiction", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:global-context", "relation": "SURVIVES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:global-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:global-invariant", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:global-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:global-contradiction", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:global-context", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:global-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:global-invariant", "relation": "SURVIVES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:global-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:global-contradiction", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:global-context", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:global-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:global-invariant", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:global-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]}
+      ],
+      "branch_plan_sha256": "8edfd6d94c5a7fdd324755fc3114846041f60369b8760dbf84a293f96ce1c03f"
+    },
+    {
+      "id": "experiment:held-out-invariance",
+      "label": "Check the held-out context against the frozen contrast rule",
+      "protocol": "Apply the frozen integer contrast rule to the held-out row and classify against every predeclared branch.",
+      "execution_class": "READ_ONLY_COMPUTATION",
+      "required_gate_ids": ["gate:no-clinical-use", "gate:read-only", "gate:synthetic-only"],
+      "required_authorities": ["SOFTWARE", "SYNTHETIC_DATA"],
+      "resources": {"duration_minutes": 10, "compute_units": 2, "external_dependencies": 1, "reversibility_risk": 0, "authority_burden": 0},
+      "classifier": {
+        "schema_version": "causalfrontier.classifier.v1",
+        "engine": "BUILTIN_TSV_INTEGER_V1",
+        "source_id": "source:synthetic-aggregate-v1",
+        "input_columns": ["context", "intervention", "response_index", "negative_control_index"],
+        "rule": {"kind": "HELDOUT_CONTRAST_ENVELOPE_V1", "group_column": "context", "intervention_column": "intervention", "value_column": "response_index", "candidate_value": "candidate", "comparator_value": "comparator", "training_groups": ["context_a", "context_b"], "heldout_group": "held_out", "outside_margin_min": 1},
+        "outcome_map": {"CONTRADICTION": "outcome:held-contradiction", "FAILURE": "outcome:held-failure", "NO_CALL": "outcome:held-no-call", "LOW": "outcome:held-invariant", "HIGH": "outcome:held-context"}
+      },
+      "classifier_sha256": "206ec4b97413126aad89b18188f22be3c8fe8695671f32356af70f1182133992",
+      "outcome_partition": "PREDECLARED_TOTAL_WITH_CONTRADICTION_FAILURE_AND_NO_CALL",
+      "outcomes": [
+        {"id": "outcome:held-contradiction", "label": "Held-out pattern contradicts every named world", "class": "CONTRADICTION"},
+        {"id": "outcome:held-context", "label": "Held-out contrast follows context", "class": "INFORMATIVE"},
+        {"id": "outcome:held-failure", "label": "Held-out computation fails", "class": "FAILURE"},
+        {"id": "outcome:held-invariant", "label": "Held-out contrast remains invariant", "class": "INFORMATIVE"},
+        {"id": "outcome:held-no-call", "label": "Held-out rule returns no call", "class": "NO_CALL"}
+      ],
+      "predictions": [
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:held-contradiction", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:held-context", "relation": "SURVIVES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:held-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:held-invariant", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:held-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:held-contradiction", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:held-context", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:held-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:held-invariant", "relation": "SURVIVES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:held-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:held-contradiction", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:held-context", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:held-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:held-invariant", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:held-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]}
+      ],
+      "branch_plan_sha256": "4fca74e460ea51cd257ab80060da8e594448e9324b2f805ad0f992bcc3e6c0b6"
+    },
+    {
+      "id": "experiment:negative-control",
+      "label": "Check whether the negative control tracks the context label",
+      "protocol": "Compare the frozen negative-control integers across contexts and classify against all predeclared branches.",
+      "execution_class": "READ_ONLY_COMPUTATION",
+      "required_gate_ids": ["gate:no-clinical-use", "gate:read-only", "gate:synthetic-only"],
+      "required_authorities": ["SOFTWARE", "SYNTHETIC_DATA"],
+      "resources": {"duration_minutes": 20, "compute_units": 3, "external_dependencies": 0, "reversibility_risk": 0, "authority_burden": 0},
+      "classifier": {
+        "schema_version": "causalfrontier.classifier.v1",
+        "engine": "BUILTIN_TSV_INTEGER_V1",
+        "source_id": "source:synthetic-aggregate-v1",
+        "input_columns": ["context", "intervention", "response_index", "negative_control_index"],
+        "rule": {"kind": "GROUPED_SHARED_VALUE_RANGE_V1", "group_column": "context", "intervention_column": "intervention", "value_column": "negative_control_index", "candidate_value": "candidate", "comparator_value": "comparator", "minimum_groups": 3, "low_max": 1, "high_min": 2},
+        "outcome_map": {"CONTRADICTION": "outcome:control-contradiction", "FAILURE": "outcome:control-failure", "NO_CALL": "outcome:control-no-call", "LOW": "outcome:control-null", "HIGH": "outcome:control-tracks-context"}
+      },
+      "classifier_sha256": "b42dad0266045fd9fa6f41e2c320b66c6a417e4290b70fb4466c447af6d15007",
+      "outcome_partition": "PREDECLARED_TOTAL_WITH_CONTRADICTION_FAILURE_AND_NO_CALL",
+      "outcomes": [
+        {"id": "outcome:control-contradiction", "label": "Control pattern contradicts every named world", "class": "CONTRADICTION"},
+        {"id": "outcome:control-failure", "label": "Control computation fails", "class": "FAILURE"},
+        {"id": "outcome:control-no-call", "label": "Control rule returns no call", "class": "NO_CALL"},
+        {"id": "outcome:control-null", "label": "Control does not track context", "class": "INFORMATIVE"},
+        {"id": "outcome:control-tracks-context", "label": "Control tracks context", "class": "INFORMATIVE"}
+      ],
+      "predictions": [
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:control-contradiction", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:control-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:control-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:control-null", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:context-confounding", "outcome_id": "outcome:control-tracks-context", "relation": "SURVIVES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:control-contradiction", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:control-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:control-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:control-null", "relation": "SURVIVES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:invariant-mechanism", "outcome_id": "outcome:control-tracks-context", "relation": "EXCLUDES", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:control-contradiction", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:control-failure", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:control-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:control-null", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
+        {"world_id": "world:residual", "outcome_id": "outcome:control-tracks-context", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]}
+      ],
+      "branch_plan_sha256": "a6fcb7df28d02323d61fcac152ef8db7cce8547aece5f55d550bd7a23882ec4f"
+    }
+  ],
+  "nonclaims": [
+    "This synthetic fixture is not biological evidence.",
+    "The compiler does not estimate causal effects or probabilities.",
+    "The frontier is not a clinical recommendation or patient decision.",
+    "No wet-lab, material, human, or clinical execution is authorized.",
+    "A predeclared branch rehearsal is not an observed result.",
+    "Software verification does not validate the declared causal worlds."
+  ]
+}

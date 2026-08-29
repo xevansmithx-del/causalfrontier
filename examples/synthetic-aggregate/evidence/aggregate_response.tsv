@@ -1,0 +1,7 @@
+context	intervention	response_index	negative_control_index
+context_a	candidate	8	1
+context_a	comparator	2	1
+context_b	candidate	7	4
+context_b	comparator	3	4
+held_out	candidate	6	2
+held_out	comparator	2	2

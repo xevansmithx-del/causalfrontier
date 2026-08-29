@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.32"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Sync locked environment
+        run: uv sync --frozen --extra dev
+      - name: Test without network access
+        run: >-
+          uv run --frozen --no-sync pytest
+          --disable-socket --allow-unix-socket
+          --cov=causalfrontier --cov-report=term-missing --cov-fail-under=80
+      - name: Compile source and tests
+        run: uv run --frozen --no-sync python -m compileall -q src tests
+
+  quality:
+    name: Release and trust-boundary checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install pinned uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: "0.11.32"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Sync locked environment
+        run: uv sync --frozen --extra dev
+      - name: Lint, format, hooks, and privacy
+        run: |
+          uv run --frozen --no-sync ruff check .
+          uv run --frozen --no-sync ruff format --check .
+          uv run --frozen --no-sync pre-commit run --all-files
+          uv run --frozen --no-sync python .github/scripts/privacy_scan.py .
+      - name: Replay optimized-runtime boundary
+        run: |
+          normal=$(uv run --frozen --no-sync python tests/optimized_probe.py)
+          optimized=$(uv run --frozen --no-sync python -O tests/optimized_probe.py)
+          test "$normal" = "$optimized"
+      - name: Verify exact source freeze
+        run: |
+          LC_ALL=C git ls-files | LC_ALL=C sort | grep -vx SOURCE_SHA256SUMS.txt > "$RUNNER_TEMP/tracked-files.txt"
+          sed 's/^[0-9a-f]\{64\}  //' SOURCE_SHA256SUMS.txt > "$RUNNER_TEMP/manifest-files.txt"
+          diff -u "$RUNNER_TEMP/tracked-files.txt" "$RUNNER_TEMP/manifest-files.txt"
+          sha256sum --check SOURCE_SHA256SUMS.txt
+      - name: Build and check packages
+        run: |
+          uv run --frozen --no-sync python -m build
+          uv run --frozen --no-sync python -m twine check dist/*
+          wheel=$(find dist -maxdepth 1 -name '*.whl' -print -quit)
+          sdist=$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)
+          mkdir -p "$RUNNER_TEMP/wheel-tree" "$RUNNER_TEMP/sdist-tree"
+          uv run --frozen --no-sync python -m zipfile -e "$wheel" "$RUNNER_TEMP/wheel-tree"
+          uv run --frozen --no-sync python -m tarfile -e "$sdist" "$RUNNER_TEMP/sdist-tree"
+          uv run --frozen --no-sync python .github/scripts/privacy_scan.py "$RUNNER_TEMP/wheel-tree"
+          uv run --frozen --no-sync python .github/scripts/privacy_scan.py "$RUNNER_TEMP/sdist-tree"
+      - name: Test source distribution without network access
+        run: |
+          sdist_root=$(find "$RUNNER_TEMP/sdist-tree" -mindepth 1 -maxdepth 1 -type d -print -quit)
+          cd "$sdist_root"
+          sha256sum --check SOURCE_SHA256SUMS.txt
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest --disable-socket --allow-unix-socket
+      - name: Installed-wheel smoke
+        run: |
+          uv venv "$RUNNER_TEMP/wheel-venv" --python 3.12
+          uv pip install --python "$RUNNER_TEMP/wheel-venv/bin/python" dist/*.whl
+          "$RUNNER_TEMP/wheel-venv/bin/causalfrontier" --version
+          "$RUNNER_TEMP/wheel-venv/bin/causalfrontier" analyze examples/synthetic-aggregate
+          "$RUNNER_TEMP/wheel-venv/bin/causalfrontier" compile examples/synthetic-aggregate "$RUNNER_TEMP/capsule"
+          "$RUNNER_TEMP/wheel-venv/bin/causalfrontier" verify "$RUNNER_TEMP/capsule"
+
+  source-manifest:
+    name: Exact source freeze
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify exact tracked set and hashes
+        run: |
+          LC_ALL=C git ls-files | LC_ALL=C sort | grep -vx SOURCE_SHA256SUMS.txt > "$RUNNER_TEMP/tracked-files.txt"
+          sed 's/^[0-9a-f]\{64\}  //' SOURCE_SHA256SUMS.txt > "$RUNNER_TEMP/manifest-files.txt"
+          diff -u "$RUNNER_TEMP/tracked-files.txt" "$RUNNER_TEMP/manifest-files.txt"
+          sha256sum --check SOURCE_SHA256SUMS.txt
