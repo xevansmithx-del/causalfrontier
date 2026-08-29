@@ -41,7 +41,7 @@ dev = [
   "pytest-socket>=0.7,<1",
   "ruff>=0.12,<1",
   "setuptools>=77,<83",
-  "twine>=5,<7",
+  "twine>=5,<8",
   "wheel>=0.45,<1",
 ]
 
