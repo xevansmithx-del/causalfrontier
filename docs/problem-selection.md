@@ -23,6 +23,19 @@ The ingredients already exist but solve neighboring problems:
 
 These observations motivate an orchestration and evaluation layer rather than another ungrounded universal predictor.
 
+## Competitive update — 2026-09-02
+
+[Elicit's BioDecisionBench](https://elicit.com/blog/biodecisionbench-evals) materially overlaps this problem framing: it evaluates evidence-grounded biomedical decisions under ambiguity across target selection, study and trial design, and indication selection, with rubrics for both research process and answer quality. It therefore invalidates any novelty claim based merely on “benchmarking biomedical decisions,” reasoning from fragmented evidence, or evaluating what a biomedical team should do next. LifeSciBench, FrontierScience, LAB-Bench and BixBench also cover realistic expert scientific work, while CACHE and CASP establish precedents for prospective experimental validation and blind independent assessment. This is a bounded comparison, not an exhaustive survey or a novelty opinion.
+
+CausalFrontier's still-unvalidated distinct hypothesis is narrower: machine-verifiable pre-outcome commitments to admissible evidence, candidate actions, complete outcome branches, scoring, and calibrated abstention; independent custody and reveal; and a measured reduction in fully loaded real time and cost to the next decision-relevant falsification against predeclared baselines. The conjunction may be worth testing, but its distinctiveness, feasibility, effect size, and value have not been demonstrated. See the [2026-09-02 competitive landscape](competitive-landscape-2026-09-02.md).
+
+The same-day [public adoption audit](adoption-audit-2026-09-02.md) found no
+defensible evidence of meaningful external scientific use for GraceGraph,
+GraceLoop, or CausalFrontier. Clone counts cannot distinguish scientists from
+maintainer, CI, scanner, or automation traffic. Independent novice installation
+and one observed end-to-end read-only task are therefore empirical program gates,
+not marketing afterthoughts.
+
 ## Alternatives considered
 
 | Direction | Upside | Why it is not the first wedge |

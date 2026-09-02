@@ -1,0 +1,55 @@
+{
+  "schema_version": "causalfrontier.calibration-input-source-map.v1",
+  "status": "CURRENT_METADATA_PREPARATION_NOT_HISTORICALLY_ADMISSIBLE",
+  "control_id": "control:pcsk9-pre-fourier",
+  "knowledge_cutoff": "2012-12-31T23:59:59Z",
+  "decision_target": "Test whether pharmacologic PCSK9 inhibition added to background statin therapy reduces major cardiovascular events rather than only lowering LDL cholesterol.",
+  "sources": [
+    {
+      "pmid": "16554528",
+      "doi": "10.1056/NEJMoa054013",
+      "reported_publication_date": "2006-03-23",
+      "evidence_role": "HUMAN_GENETIC_ASSOCIATION_WITH_CORONARY_EVENTS"
+    },
+    {
+      "pmid": "23083772",
+      "doi": "10.1016/j.jacc.2012.08.986",
+      "reported_publication_date": "2012-11-06",
+      "evidence_role": "PHASE_1_LDL_TARGET_ENGAGEMENT"
+    },
+    {
+      "pmid": "23129602",
+      "doi": "10.1161/CIRCULATIONAHA.112.144055",
+      "reported_publication_date": "2012-11-13",
+      "evidence_role": "PHASE_2_LDL_TARGET_ENGAGEMENT"
+    },
+    {
+      "pmid": "23141812",
+      "doi": "10.1016/S0140-6736(12)61771-1",
+      "reported_publication_date": "2012-12-08",
+      "evidence_role": "PHASE_2_MONOTHERAPY_LDL_TARGET_ENGAGEMENT"
+    },
+    {
+      "pmid": "23141813",
+      "doi": "10.1016/S0140-6736(12)61770-X",
+      "reported_publication_date": "2012-12-08",
+      "evidence_role": "PHASE_2_STATIN_ADD_ON_LDL_TARGET_ENGAGEMENT"
+    },
+    {
+      "pmid": "23128163",
+      "doi": "10.1001/jama.2012.25790",
+      "reported_publication_date": "2012-12-19",
+      "evidence_role": "PHASE_2_STATIN_INTOLERANCE_LDL_TARGET_ENGAGEMENT"
+    }
+  ],
+  "predeclared_translation_gaps": [
+    "LIFELONG_GENETIC_EXPOSURE_IS_NOT_FINITE_PHARMACOLOGIC_INTERVENTION",
+    "LDL_LOWERING_IS_NOT_ITSELF_A_CARDIOVASCULAR_OUTCOME",
+    "SERIOUS_HARM_CAN_OFFSET_EVENT_REDUCTION"
+  ],
+  "preparation_limits": [
+    "SOURCE_METADATA_WAS_RETRIEVED_IN_2026_NOT_FROM_AN_IMMUTABLE_PRE_CUTOFF_SNAPSHOT",
+    "PUBLICATION_DATES_ARE_NOT_INDEPENDENT_PUBLIC_AVAILABILITY_ATTESTATIONS",
+    "THIS_FILE_IS_AUTHOR_CURATED_AND_NOT_A_RAW_SOURCE_RECEIPT"
+  ]
+}
