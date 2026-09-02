@@ -153,6 +153,8 @@ def test_rehearsal_appends_and_capsule_still_replays(case_root: Path, tmp_path: 
 def test_posthoc_rehearsal_is_not_appended(case_root: Path, tmp_path: Path):
     destination = tmp_path / "capsule"
     built = build_capsule(case_root, destination)
+    case = load_case(case_root)
+    experiment = next(item for item in case["experiments"] if item["id"] == "experiment:held-out-invariance")
     with pytest.raises(CausalFrontierError, match="post-hoc outcome"):
         record_rehearsal(
             destination,
@@ -160,7 +162,7 @@ def test_posthoc_rehearsal_is_not_appended(case_root: Path, tmp_path: Path):
             "2026-08-28T21:01:00Z",
             "experiment:held-out-invariance",
             "outcome:posthoc",
-            "4fca74e460ea51cd257ab80060da8e594448e9324b2f805ad0f992bcc3e6c0b6",
+            experiment["branch_plan_sha256"],
         )
     assert verify_capsule(destination)["ledger"]["head_digest"] == built["ledger"]["head_digest"]
 

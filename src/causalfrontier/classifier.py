@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import csv
-import io
 import re
 from copy import deepcopy
 from pathlib import Path
@@ -20,23 +18,53 @@ from .canonical import (
     sha256_bytes,
 )
 
-CLASSIFIER_SCHEMA = "causalfrontier.classifier.v1"
-CLASSIFIER_ENGINE = "BUILTIN_TSV_INTEGER_V1"
+CLASSIFIER_SCHEMA = "causalfrontier.classifier.v2"
+CLASSIFIER_ENGINE = "BUILTIN_STRICT_TSV_BOUNDED_INTEGER_V2"
+OBSERVATION_ADAPTER_SCHEMA = "causalfrontier.observation-classifier-adapter.v2"
+OBSERVATION_CLASSIFIER_ENGINE = "BUILTIN_STRICT_TSV_BOUNDED_INTEGER_OBSERVATION_V2"
 CLASSIFIER_INPUT_MAX_BYTES = 1024 * 1024
-BRANCH_TOKENS = {"CONTRADICTION", "FAILURE", "NO_CALL", "LOW", "HIGH"}
-RULE_KINDS = {
-    "GROUPED_CONTRAST_RANGE_V1",
-    "GROUPED_SHARED_VALUE_RANGE_V1",
-    "HELDOUT_CONTRAST_ENVELOPE_V1",
-}
-INTEGER = re.compile(r"-?(0|[1-9][0-9]*)\Z")
+CLASSIFIER_CELL_MAX_BYTES = 8192
+CLASSIFIER_TSV_PARSER = "STRICT_LITERAL_TAB_UTF8_BOUNDED_INTEGER_V2"
+BRANCH_TOKENS = frozenset({"CONTRADICTION", "FAILURE", "NO_CALL", "LOW", "HIGH"})
+RULE_KINDS = frozenset(
+    {
+        "GROUPED_CONTRAST_RANGE_V1",
+        "GROUPED_SHARED_VALUE_RANGE_V1",
+        "HELDOUT_CONTRAST_ENVELOPE_V1",
+    }
+)
 INTEGER_BOUND = 1_000_000_000
+INTEGER_MAGNITUDE_TEXT = str(INTEGER_BOUND)
+INTEGER_GRAMMAR = r"(?:0|-?[1-9][0-9]*)\Z"
+INTEGER = re.compile(INTEGER_GRAMMAR)
+FORBIDDEN_RECORD_SEPARATORS = ("\r", "\v", "\f", "\x1c", "\x1d", "\x1e", "\x85", "\u2028", "\u2029")
 
 
 class _Branch(Exception):
     def __init__(self, token: str, reason: str):
         self.token = token
         self.reason = reason
+
+
+def classifier_parser_contract() -> Dict[str, Any]:
+    return {
+        "parser": CLASSIFIER_TSV_PARSER,
+        "encoding": "UTF-8",
+        "field_delimiter": "U+0009_HORIZONTAL_TAB",
+        "record_delimiter": "U+000A_LINE_FEED_ONLY",
+        "terminal_record_delimiter_required": True,
+        "quoting_or_escaping": "NONE",
+        "max_input_bytes": CLASSIFIER_INPUT_MAX_BYTES,
+        "max_cell_bytes": CLASSIFIER_CELL_MAX_BYTES,
+        "integer_grammar": INTEGER_GRAMMAR,
+        "integer_absolute_bound": INTEGER_BOUND,
+        "integer_max_magnitude_digits": len(INTEGER_MAGNITUDE_TEXT),
+        "integer_negative_zero_allowed": False,
+    }
+
+
+def classifier_parser_contract_sha256() -> str:
+    return sha256_bytes(canonical_bytes(classifier_parser_contract()))
 
 
 def classifier_sha256(classifier: Dict[str, Any]) -> str:
@@ -147,6 +175,40 @@ def validate_classifier(
     return classifier
 
 
+def _read_rows_bytes(raw: bytes, columns: List[str], expected_sha256: str) -> List[Dict[str, str]]:
+    """Authenticate, decode, and parse one exact byte snapshot."""
+
+    if not isinstance(raw, bytes):
+        raise CausalFrontierError("classifier observation must be bytes")
+    if len(raw) > CLASSIFIER_INPUT_MAX_BYTES:
+        raise CausalFrontierError("classifier source exceeds the frozen input size limit")
+    if sha256_bytes(raw) != expected_sha256:
+        raise CausalFrontierError("classifier source digest changed after case validation")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeError:
+        raise _Branch("FAILURE", "INPUT_TRANSPORT_OR_PARSE_FAILURE") from None
+    if not text.endswith("\n") or any(separator in text for separator in FORBIDDEN_RECORD_SEPARATORS):
+        raise _Branch("FAILURE", "INPUT_RECORD_DELIMITER_MISMATCH")
+    lines = text[:-1].split("\n")
+    header = [] if not lines else lines[0].split("\t")
+    if any(len(cell.encode("utf-8")) > CLASSIFIER_CELL_MAX_BYTES for cell in header):
+        raise _Branch("FAILURE", "INPUT_FIELD_EXCEEDS_LIMIT")
+    if header != columns:
+        raise _Branch("FAILURE", "INPUT_HEADER_SCHEMA_MISMATCH")
+    rows = []
+    for line in lines[1:]:
+        cells = line.split("\t")
+        if len(cells) != len(columns):
+            raise _Branch("FAILURE", "INPUT_ROW_WIDTH_MISMATCH")
+        if any(len(cell.encode("utf-8")) > CLASSIFIER_CELL_MAX_BYTES for cell in cells):
+            raise _Branch("FAILURE", "INPUT_FIELD_EXCEEDS_LIMIT")
+        rows.append(dict(zip(columns, cells, strict=True)))
+    if not rows:
+        raise _Branch("NO_CALL", "INPUT_HAS_NO_ROWS")
+    return rows
+
+
 def _read_rows(path: Path, columns: List[str], expected_sha256: str) -> List[Dict[str, str]]:
     """Read, authenticate, decode, and parse one exact byte snapshot."""
 
@@ -155,28 +217,17 @@ def _read_rows(path: Path, columns: List[str], expected_sha256: str) -> List[Dic
             raw = handle.read(CLASSIFIER_INPUT_MAX_BYTES + 1)
     except OSError:
         raise _Branch("FAILURE", "INPUT_TRANSPORT_OR_PARSE_FAILURE") from None
-    if len(raw) > CLASSIFIER_INPUT_MAX_BYTES:
-        raise CausalFrontierError("classifier source exceeds the frozen input size limit")
-    if sha256_bytes(raw) != expected_sha256:
-        raise CausalFrontierError("classifier source digest changed after case validation")
-    try:
-        text = raw.decode("utf-8")
-        reader = csv.DictReader(io.StringIO(text, newline=""), delimiter="\t")
-        if reader.fieldnames != columns:
-            raise _Branch("FAILURE", "INPUT_HEADER_SCHEMA_MISMATCH")
-        rows = list(reader)
-    except (UnicodeError, csv.Error):
-        raise _Branch("FAILURE", "INPUT_TRANSPORT_OR_PARSE_FAILURE") from None
-    if not rows:
-        raise _Branch("NO_CALL", "INPUT_HAS_NO_ROWS")
-    if any(None in row or any(value is None for value in row.values()) for row in rows):
-        raise _Branch("FAILURE", "INPUT_ROW_WIDTH_MISMATCH")
-    return rows
+    return _read_rows_bytes(raw, columns, expected_sha256)
 
 
 def _integer(value: str) -> int:
     if not INTEGER.fullmatch(value):
         raise _Branch("FAILURE", "VALUE_IS_NOT_CANONICAL_INTEGER")
+    magnitude = value[1:] if value.startswith("-") else value
+    if len(magnitude) > len(INTEGER_MAGNITUDE_TEXT) or (
+        len(magnitude) == len(INTEGER_MAGNITUDE_TEXT) and magnitude > INTEGER_MAGNITUDE_TEXT
+    ):
+        raise _Branch("FAILURE", "INTEGER_OUT_OF_BOUNDS")
     parsed = int(value)
     if not -INTEGER_BOUND <= parsed <= INTEGER_BOUND:
         raise _Branch("FAILURE", "INTEGER_OUT_OF_BOUNDS")
@@ -296,6 +347,17 @@ def execute_classifier(case: Dict[str, Any], root: Path, experiment_id: str) -> 
         raise CausalFrontierError("unknown classifier experiment: %s" % experiment_id)
     experiment = experiments[experiment_id]
     classifier = experiment["classifier"]
+    validated_classifier = validate_classifier(
+        classifier,
+        experiment_id,
+        {item["id"]: item for item in experiment["outcomes"]},
+        {item["id"] for item in case["provenance"]},
+    )
+    if canonical_bytes(validated_classifier) != canonical_bytes(classifier):
+        raise CausalFrontierError("classifier contract changed during execution")
+    classifier = validated_classifier
+    if classifier_sha256(classifier) != experiment["classifier_sha256"]:
+        raise CausalFrontierError("classifier digest mismatch at execution")
     sources = {item["id"]: item for item in case["provenance"]}
     source = sources[classifier["source_id"]]
     token = "FAILURE"
@@ -314,12 +376,100 @@ def execute_classifier(case: Dict[str, Any], root: Path, experiment_id: str) -> 
         "experiment_id": experiment_id,
         "classifier_sha256": experiment["classifier_sha256"],
         "engine": CLASSIFIER_ENGINE,
+        "parser_contract_sha256": classifier_parser_contract_sha256(),
         "source_id": source["id"],
         "source_sha256": source["sha256"],
         "execution_status": "EXECUTED_FROZEN_INPUT",
         "semantic_scope": (
             "SYNTHETIC_FIXTURE_ONLY" if source["data_class"] == "SYNTHETIC" else "DECLARED_PUBLIC_SCOPE_UNATTESTED"
         ),
+        "authority": "SOFTWARE_ONLY",
+        "branch_token": token,
+        "outcome_id": classifier["outcome_map"][token],
+        "metrics": metrics,
+    }
+    return dict(core, result_sha256=sha256_bytes(canonical_bytes(core)))
+
+
+def execute_classifier_observation(
+    case: Dict[str, Any],
+    experiment_id: str,
+    observation_id: str,
+    replicate_id: str,
+    raw_observation: bytes,
+    expected_observation_sha256: str,
+) -> Dict[str, Any]:
+    """Classify digest-authenticated synthetic bytes without accepting a label.
+
+    The adapter deliberately has no outcome or branch argument. It reuses only the
+    frozen classifier schema, rule, and total outcome map; the observation bytes
+    replace the dossier source as the classifier input. This primitive verifies
+    byte identity against its caller-supplied digest; a steward-side oracle verifier
+    must separately establish commitment and coordinate binding.
+    """
+
+    observation_id = require_id(observation_id, "observation id")
+    replicate_id = require_id(replicate_id, "observation replicate id")
+    if not isinstance(expected_observation_sha256, str) or not re.fullmatch(
+        r"[0-9a-f]{64}", expected_observation_sha256
+    ):
+        raise CausalFrontierError("observation digest must be lowercase SHA-256")
+    if not case.get("provenance") or any(
+        source.get("data_class") != "SYNTHETIC" or source.get("authority") != "SYNTHETIC_DATA"
+        for source in case["provenance"]
+    ):
+        raise CausalFrontierError("observation adapter is restricted to synthetic cases")
+    experiments = {item["id"]: item for item in case["experiments"]}
+    if experiment_id not in experiments:
+        raise CausalFrontierError("unknown observation classifier experiment: %s" % experiment_id)
+    experiment = experiments[experiment_id]
+    if experiment["execution_class"] != "READ_ONLY_COMPUTATION" or not set(experiment["required_authorities"]) <= {
+        "SOFTWARE",
+        "SYNTHETIC_DATA",
+    }:
+        raise CausalFrontierError("observation adapter cannot cross the read-only synthetic authority boundary")
+    classifier = experiment["classifier"]
+    validated_classifier = validate_classifier(
+        classifier,
+        experiment_id,
+        {item["id"]: item for item in experiment["outcomes"]},
+        {item["id"] for item in case["provenance"]},
+    )
+    if canonical_bytes(validated_classifier) != canonical_bytes(classifier):
+        raise CausalFrontierError("observation adapter classifier contract changed during execution")
+    classifier = validated_classifier
+    if classifier_sha256(classifier) != experiment["classifier_sha256"]:
+        raise CausalFrontierError("observation adapter classifier digest mismatch")
+    token = "FAILURE"
+    metrics: Dict[str, Any] = {"reason": "UNREACHED"}
+    try:
+        rows = _read_rows_bytes(raw_observation, classifier["input_columns"], expected_observation_sha256)
+        token, metrics = _classify(rows, classifier["rule"])
+    except _Branch as branch:
+        token = branch.token
+        metrics = {"reason": branch.reason}
+    adapter_contract = {
+        "schema_version": OBSERVATION_ADAPTER_SCHEMA,
+        "engine": OBSERVATION_CLASSIFIER_ENGINE,
+        "base_classifier_sha256": experiment["classifier_sha256"],
+        "input_mode": "CALLER_SUPPLIED_DIGEST_AUTHENTICATED_SYNTHETIC_OBSERVATION_BYTES",
+        "parser_contract": classifier_parser_contract(),
+        "parser_contract_sha256": classifier_parser_contract_sha256(),
+    }
+    core = {
+        "schema_version": "causalfrontier.observation-classifier-result.v1",
+        "case_id": case["case_id"],
+        "case_sha256": sha256_bytes(canonical_bytes(case)),
+        "experiment_id": experiment_id,
+        "classifier_sha256": experiment["classifier_sha256"],
+        "adapter_contract_sha256": sha256_bytes(canonical_bytes(adapter_contract)),
+        "engine": OBSERVATION_CLASSIFIER_ENGINE,
+        "parser_contract_sha256": classifier_parser_contract_sha256(),
+        "observation_id": observation_id,
+        "replicate_id": replicate_id,
+        "observation_sha256": expected_observation_sha256,
+        "execution_status": "EXECUTED_DIGEST_AUTHENTICATED_SYNTHETIC_OBSERVATION_BYTES",
+        "semantic_scope": "SYNTHETIC_PROTOCOL_EXERCISE_ONLY",
         "authority": "SOFTWARE_ONLY",
         "branch_token": token,
         "outcome_id": classifier["outcome_map"][token],

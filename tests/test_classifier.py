@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+import csv
 import json
+import sys
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
 
-from causalfrontier.canonical import CausalFrontierError, canonical_bytes, sha256_file
-from causalfrontier.classifier import execute_classifiers
+from causalfrontier.canonical import CausalFrontierError, canonical_bytes, sha256_bytes, sha256_file
+from causalfrontier.classifier import (
+    CLASSIFIER_CELL_MAX_BYTES,
+    INTEGER_BOUND,
+    classifier_parser_contract,
+    classifier_sha256,
+    execute_classifier_observation,
+    execute_classifiers,
+)
 from causalfrontier.model import load_case, validate_case
 
 
@@ -177,3 +187,171 @@ def test_heldout_classifier_fails_on_silently_ignored_extra_group(copied_case: P
     heldout = results["experiment:held-out-invariance"]
     assert heldout["branch_token"] == "FAILURE"
     assert heldout["metrics"]["reason"] == "DECLARED_GROUP_SET_MISMATCH"
+
+
+def _observation_result(case, raw: bytes):
+    return execute_classifier_observation(
+        case,
+        "experiment:global-recompute",
+        "observation:test",
+        "replicate:1",
+        raw,
+        sha256_bytes(raw),
+    )
+
+
+def test_observation_adapter_derives_all_five_tokens_from_authenticated_bytes(case_root: Path):
+    case = load_case(case_root)
+    header = b"context\tintervention\tresponse_index\tnegative_control_index\n"
+    low = (case_root / "evidence/aggregate_response.tsv").read_bytes()
+    high = low.replace(b"held_out\tcandidate\t6\t2", b"held_out\tcandidate\t12\t2")
+    contradiction = low.replace(b"context_a\tcandidate\t8\t1", b"context_a\tcandidate\t1\t1")
+    failure = b"wrong\theader\ncommitted\tmeasurement\n"
+    no_call = header
+    observed = {
+        token: _observation_result(case, raw)["branch_token"]
+        for token, raw in {
+            "LOW": low,
+            "HIGH": high,
+            "CONTRADICTION": contradiction,
+            "FAILURE": failure,
+            "NO_CALL": no_call,
+        }.items()
+    }
+    assert observed == {token: token for token in ("LOW", "HIGH", "CONTRADICTION", "FAILURE", "NO_CALL")}
+
+
+def test_observation_adapter_uses_hidden_bytes_not_frozen_source(case_root: Path):
+    case = load_case(case_root)
+    frozen = (case_root / "evidence/aggregate_response.tsv").read_bytes()
+    hidden = frozen.replace(b"held_out\tcandidate\t6\t2", b"held_out\tcandidate\t12\t2")
+    assert _observation_result(case, frozen)["branch_token"] == "LOW"
+    result = _observation_result(case, hidden)
+    assert result["branch_token"] == "HIGH"
+    assert result["execution_status"] == "EXECUTED_DIGEST_AUTHENTICATED_SYNTHETIC_OBSERVATION_BYTES"
+    assert result["observation_sha256"] == sha256_bytes(hidden)
+    assert result["authority"] == "SOFTWARE_ONLY"
+
+
+def test_observation_digest_mismatch_aborts_instead_of_deriving_failure(case_root: Path):
+    case = load_case(case_root)
+    raw = (case_root / "evidence/aggregate_response.tsv").read_bytes()
+    with pytest.raises(CausalFrontierError, match="digest changed"):
+        execute_classifier_observation(
+            case,
+            "experiment:global-recompute",
+            "observation:test",
+            "replicate:1",
+            raw,
+            "0" * 64,
+        )
+
+
+def test_observation_adapter_reauthenticates_classifier_logic(case_root: Path):
+    case = deepcopy(load_case(case_root))
+    case["experiments"][0]["classifier"]["rule"]["low_max"] = 1
+    case["experiments"][0]["classifier"]["rule"]["high_min"] = 2
+    raw = (case_root / "evidence/aggregate_response.tsv").read_bytes()
+    with pytest.raises(CausalFrontierError, match="classifier digest mismatch"):
+        _observation_result(case, raw)
+
+
+def test_observation_adapter_revalidates_outcome_class_mapping_after_coherent_rehash(case_root: Path):
+    case = deepcopy(load_case(case_root))
+    experiment = next(item for item in case["experiments"] if item["id"] == "experiment:global-recompute")
+    mapping = experiment["classifier"]["outcome_map"]
+    mapping["LOW"], mapping["CONTRADICTION"] = mapping["CONTRADICTION"], mapping["LOW"]
+    experiment["classifier_sha256"] = classifier_sha256(experiment["classifier"])
+    raw = (case_root / "evidence/aggregate_response.tsv").read_bytes()
+    with pytest.raises(CausalFrontierError, match="wrong outcome class"):
+        _observation_result(case, raw)
+
+
+def test_observation_parser_is_independent_of_process_global_csv_field_limit(case_root: Path):
+    case = load_case(case_root)
+    raw = (
+        b"context\tintervention\tresponse_index\tnegative_control_index\n"
+        + b"x" * (CLASSIFIER_CELL_MAX_BYTES + 1)
+        + b"\tcandidate\t1\t0\n"
+    )
+    original_limit = csv.field_size_limit()
+    try:
+        csv.field_size_limit(1)
+        first = _observation_result(case, raw)
+        csv.field_size_limit(10_000_000)
+        second = _observation_result(case, raw)
+    finally:
+        csv.field_size_limit(original_limit)
+    assert first == second
+    assert first["branch_token"] == "FAILURE"
+    assert first["metrics"] == {"reason": "INPUT_FIELD_EXCEEDS_LIMIT"}
+
+
+@pytest.mark.parametrize("value", ["9" * 5000, "-" + "9" * 5000])
+def test_observation_integer_lexical_bound_is_independent_of_python_global_limit(case_root: Path, value: str):
+    case = load_case(case_root)
+    raw = b"context\tintervention\tresponse_index\tnegative_control_index\n" + (
+        "context_a\tcandidate\t%s\t0\n" % value
+    ).encode("ascii")
+    original_limit = sys.get_int_max_str_digits() if hasattr(sys, "get_int_max_str_digits") else None
+    observed = []
+    try:
+        for limit in (640, 10_000):
+            if hasattr(sys, "set_int_max_str_digits"):
+                sys.set_int_max_str_digits(limit)
+            observed.append(_observation_result(case, raw))
+    finally:
+        if original_limit is not None:
+            sys.set_int_max_str_digits(original_limit)
+    assert observed[0] == observed[1]
+    assert observed[0]["branch_token"] == "FAILURE"
+    assert observed[0]["metrics"] == {"reason": "INTEGER_OUT_OF_BOUNDS"}
+
+
+@pytest.mark.parametrize("value", ["-0", str(INTEGER_BOUND + 1), str(-(INTEGER_BOUND + 1))])
+def test_observation_integer_canonicality_and_bound_are_total(case_root: Path, value: str):
+    case = load_case(case_root)
+    raw = b"context\tintervention\tresponse_index\tnegative_control_index\n" + (
+        "context_a\tcandidate\t%s\t0\n" % value
+    ).encode("ascii")
+    result = _observation_result(case, raw)
+    assert result["branch_token"] == "FAILURE"
+    expected = "VALUE_IS_NOT_CANONICAL_INTEGER" if value == "-0" else "INTEGER_OUT_OF_BOUNDS"
+    assert result["metrics"] == {"reason": expected}
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b"context\tintervention\tresponse_index\tnegative_control_index\r\n",
+        "context\tintervention\tresponse_index\tnegative_control_index\u0085".encode(),
+        b"context\tintervention\tresponse_index\tnegative_control_index",
+    ],
+)
+def test_observation_parser_enforces_one_exact_record_grammar(case_root: Path, raw: bytes):
+    result = _observation_result(load_case(case_root), raw)
+    assert result["branch_token"] == "FAILURE"
+    assert result["metrics"] == {"reason": "INPUT_RECORD_DELIMITER_MISMATCH"}
+
+
+def test_parser_contract_binds_transport_and_integer_grammar():
+    contract = classifier_parser_contract()
+    assert contract["encoding"] == "UTF-8"
+    assert contract["record_delimiter"] == "U+000A_LINE_FEED_ONLY"
+    assert contract["terminal_record_delimiter_required"] is True
+    assert contract["integer_absolute_bound"] == INTEGER_BOUND
+    assert contract["integer_negative_zero_allowed"] is False
+
+
+@pytest.mark.parametrize("mutation", ["public-data", "material-execution"])
+def test_observation_adapter_cannot_cross_synthetic_read_only_authority(case_root: Path, mutation):
+    case = deepcopy(load_case(case_root))
+    if mutation == "public-data":
+        case["provenance"][0]["data_class"] = "PUBLIC_AGGREGATE"
+        error = "restricted to synthetic"
+    else:
+        case["experiments"][0]["execution_class"] = "MATERIAL_PERTURBATION"
+        error = "read-only synthetic authority"
+    raw = (case_root / "evidence/aggregate_response.tsv").read_bytes()
+    with pytest.raises(CausalFrontierError, match=error):
+        _observation_result(case, raw)

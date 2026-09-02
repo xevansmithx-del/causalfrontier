@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import causalfrontier.cli as cli
 from causalfrontier.cli import main, parser
 from causalfrontier.model import load_case
 
@@ -72,10 +73,68 @@ def test_cli_invalid_branch_fails_closed(case_root: Path, capsys):
     assert "branch plan digest" in captured.err
 
 
-def test_cli_version_is_registered():
+def test_build_sanitized_view_cli_forwards_exact_api_contract(monkeypatch, tmp_path: Path, capsys):
+    calls = []
+    nonce = b"n" * 32
+
+    def read_nonce(path, expected_sha256):
+        calls.append(("nonce", path, expected_sha256))
+        return nonce
+
+    def build_view(root, manifest_sha256, sequence, race_path, race_sha256, supplied_nonce):
+        calls.append(
+            (
+                "view",
+                root,
+                manifest_sha256,
+                sequence,
+                race_path,
+                race_sha256,
+                supplied_nonce,
+            )
+        )
+        return {"status": "SYNTHETIC_VIEW_TEST_ONLY"}
+
+    monkeypatch.setattr(cli, "read_checkpointed_blinding_nonce", read_nonce)
+    monkeypatch.setattr(cli, "build_sanitized_entrant_view", build_view)
+    nonce_path = tmp_path / "nonce.secret"
+    race_path = tmp_path / "race.json"
+    digest = "1" * 64
+    race_digest = "2" * 64
+    nonce_digest = "3" * 64
+
+    result = main(
+        [
+            "build-sanitized-view",
+            str(tmp_path / "challenge"),
+            str(race_path),
+            str(nonce_path),
+            "--expected-manifest-sha256",
+            digest,
+            "--expected-sequence",
+            "7",
+            "--expected-race-spec-sha256",
+            race_digest,
+            "--expected-nonce-sha256",
+            nonce_digest,
+        ]
+    )
+
+    output, error = _output(capsys)
+    assert result == 3
+    assert error == ""
+    assert output == {"status": "SYNTHETIC_VIEW_TEST_ONLY"}
+    assert calls == [
+        ("nonce", nonce_path, nonce_digest),
+        ("view", tmp_path / "challenge", digest, 7, race_path, race_digest, nonce),
+    ]
+
+
+def test_cli_version_is_registered(capsys):
     try:
         parser().parse_args(["--version"])
     except SystemExit as exc:
         assert exc.code == 0
     else:
         raise AssertionError("--version did not exit")
+    assert capsys.readouterr().out == "causalfrontier 0.1.0a5\n"

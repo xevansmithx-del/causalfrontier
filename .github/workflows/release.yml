@@ -33,6 +33,81 @@ jobs:
           normal=$(uv run --frozen --no-sync python tests/optimized_probe.py)
           optimized=$(uv run --frozen --no-sync python -O tests/optimized_probe.py)
           test "$normal" = "$optimized"
+          challenge_normal=$(uv run --frozen --no-sync python tests/challenge_optimized_probe.py)
+          challenge_optimized=$(uv run --frozen --no-sync python -O tests/challenge_optimized_probe.py)
+          test "$challenge_normal" = "$challenge_optimized"
+          protocol_normal=$(uv run --frozen --no-sync python tests/protocol_optimized_probe.py)
+          protocol_optimized=$(uv run --frozen --no-sync python -O tests/protocol_optimized_probe.py)
+          test "$protocol_normal" = "$protocol_optimized"
+          blind_normal=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/blind_optimized_probe.py)
+          blind_optimized=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/blind_optimized_probe.py)
+          test "$blind_normal" = "$blind_optimized"
+          horse_normal=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/horse_race_optimized_probe.py)
+          horse_optimized=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/horse_race_optimized_probe.py)
+          test "$horse_normal" = "$horse_optimized"
+          neutral_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/neutral_optimized_probe.py)
+          neutral_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/neutral_optimized_probe.py)
+          neutral_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/neutral_optimized_probe.py)
+          neutral_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/neutral_optimized_probe.py)
+          test "$neutral_normal_hash1" = "$neutral_normal_hash77"
+          test "$neutral_normal_hash1" = "$neutral_optimized_hash1"
+          test "$neutral_normal_hash1" = "$neutral_optimized_hash77"
+          registry_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/registry_optimized_probe.py)
+          registry_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/registry_optimized_probe.py)
+          registry_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/registry_optimized_probe.py)
+          registry_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/registry_optimized_probe.py)
+          test "$registry_normal_hash1" = "$registry_normal_hash77"
+          test "$registry_normal_hash1" = "$registry_optimized_hash1"
+          test "$registry_normal_hash1" = "$registry_optimized_hash77"
+          claim_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/claim_optimized_probe.py)
+          claim_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/claim_optimized_probe.py)
+          claim_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/claim_optimized_probe.py)
+          claim_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/claim_optimized_probe.py)
+          test "$claim_normal_hash1" = "$claim_normal_hash77"
+          test "$claim_normal_hash1" = "$claim_optimized_hash1"
+          test "$claim_normal_hash1" = "$claim_optimized_hash77"
+          sentinel_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/sentinel_optimized_probe.py)
+          sentinel_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/sentinel_optimized_probe.py)
+          sentinel_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/sentinel_optimized_probe.py)
+          sentinel_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/sentinel_optimized_probe.py)
+          test "$sentinel_normal_hash1" = "$sentinel_normal_hash77"
+          test "$sentinel_normal_hash1" = "$sentinel_optimized_hash1"
+          test "$sentinel_normal_hash1" = "$sentinel_optimized_hash77"
+          witness_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/witness_optimized_probe.py)
+          witness_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/witness_optimized_probe.py)
+          witness_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/witness_optimized_probe.py)
+          witness_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/witness_optimized_probe.py)
+          test "$witness_normal_hash1" = "$witness_normal_hash77"
+          test "$witness_normal_hash1" = "$witness_optimized_hash1"
+          test "$witness_normal_hash1" = "$witness_optimized_hash77"
+          phase_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/phase_optimized_probe.py)
+          phase_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/phase_optimized_probe.py)
+          phase_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/phase_optimized_probe.py)
+          phase_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/phase_optimized_probe.py)
+          test "$phase_normal_hash1" = "$phase_normal_hash77"
+          test "$phase_normal_hash1" = "$phase_optimized_hash1"
+          test "$phase_normal_hash1" = "$phase_optimized_hash77"
+          continuity_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/continuity_optimized_probe.py)
+          continuity_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/continuity_optimized_probe.py)
+          continuity_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/continuity_optimized_probe.py)
+          continuity_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/continuity_optimized_probe.py)
+          test "$continuity_normal_hash1" = "$continuity_normal_hash77"
+          test "$continuity_normal_hash1" = "$continuity_optimized_hash1"
+          test "$continuity_normal_hash1" = "$continuity_optimized_hash77"
+          calibration_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/calibration_optimized_probe.py)
+          calibration_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/calibration_optimized_probe.py)
+          calibration_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/calibration_optimized_probe.py)
+          calibration_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/calibration_optimized_probe.py)
+          test "$calibration_normal_hash1" = "$calibration_normal_hash77"
+          test "$calibration_normal_hash1" = "$calibration_optimized_hash1"
+          test "$calibration_normal_hash1" = "$calibration_optimized_hash77"
+          calibration_v2_normal_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/calibration_v2_optimized_probe.py)
+          calibration_v2_normal_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python tests/calibration_v2_optimized_probe.py)
+          calibration_v2_optimized_hash1=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/calibration_v2_optimized_probe.py)
+          calibration_v2_optimized_hash77=$(PYTHONHASHSEED=77 uv run --frozen --no-sync python -O tests/calibration_v2_optimized_probe.py)
+          test "$calibration_v2_normal_hash1" = "$calibration_v2_normal_hash77"
+          test "$calibration_v2_normal_hash1" = "$calibration_v2_optimized_hash1"
+          test "$calibration_v2_normal_hash1" = "$calibration_v2_optimized_hash77"
           uv run --frozen --no-sync ruff check .
           uv run --frozen --no-sync ruff format --check .
           uv run --frozen --no-sync python .github/scripts/privacy_scan.py .
@@ -40,7 +115,21 @@ jobs:
           sed 's/^[0-9a-f]\{64\}  //' SOURCE_SHA256SUMS.txt > "$RUNNER_TEMP/manifest-files.txt"
           diff -u "$RUNNER_TEMP/tracked-files.txt" "$RUNNER_TEMP/manifest-files.txt"
           sha256sum --check SOURCE_SHA256SUMS.txt
-          uv run --frozen --no-sync python -m build
+          umask 022
+          export SOURCE_DATE_EPOCH=315532800
+          export PYTHONHASHSEED=0
+          build_one="$RUNNER_TEMP/build-one"
+          build_two="$RUNNER_TEMP/build-two"
+          mkdir "$build_one" "$build_two" dist
+          uv run --frozen --no-sync python -m build --no-isolation --outdir "$build_one"
+          uv run --frozen --no-sync python .github/scripts/normalize_sdist.py "$build_one"/*.tar.gz
+          uv run --frozen --no-sync python -m build --no-isolation --outdir "$build_two"
+          uv run --frozen --no-sync python .github/scripts/normalize_sdist.py "$build_two"/*.tar.gz
+          test "$(find "$build_one" -maxdepth 1 -type f | wc -l)" -eq 2
+          test "$(find "$build_two" -maxdepth 1 -type f | wc -l)" -eq 2
+          cmp "$build_one"/*.whl "$build_two"/*.whl
+          cmp "$build_one"/*.tar.gz "$build_two"/*.tar.gz
+          cp "$build_one"/* dist/
           uv run --frozen --no-sync python -m twine check dist/*
           wheel=$(find dist -maxdepth 1 -name '*.whl' -print -quit)
           sdist=$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)
@@ -52,10 +141,17 @@ jobs:
           sdist_root=$(find "$RUNNER_TEMP/sdist-tree" -mindepth 1 -maxdepth 1 -type d -print -quit)
           cd "$sdist_root"
           sha256sum --check SOURCE_SHA256SUMS.txt
+          export PYTHONPATH="$sdist_root/src"
+          "$GITHUB_WORKSPACE/.venv/bin/python" -c 'from pathlib import Path; import causalfrontier; actual = Path(causalfrontier.__file__).resolve(); expected = (Path.cwd() / "src").resolve(); assert actual.is_relative_to(expected), (actual, expected)'
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pytest --disable-socket --allow-unix-socket
+          unset PYTHONPATH
           cd "$GITHUB_WORKSPACE"
           uv venv "$RUNNER_TEMP/wheel-venv" --python 3.12
           uv pip install --python "$RUNNER_TEMP/wheel-venv/bin/python" "$wheel"
-          "$RUNNER_TEMP/wheel-venv/bin/causalfrontier" --version
+          test "$("$RUNNER_TEMP/wheel-venv/bin/causalfrontier" --version)" = "causalfrontier $package_version"
+          "$RUNNER_TEMP/wheel-venv/bin/causalfrontier" preflight-goal-claim-plan --help
+          "$RUNNER_TEMP/wheel-venv/bin/causalfrontier" preflight-sentinel-phase-bound-admission --help
+          "$RUNNER_TEMP/wheel-venv/bin/causalfrontier" preflight-calibration-v2-view --help
           cd dist
           sha256sum causalfrontier-* > RELEASE_SHA256SUMS.txt
       - name: Upload verified artifacts

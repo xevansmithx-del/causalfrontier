@@ -1,0 +1,33 @@
+{
+  "schema_version": "causalfrontier.calibration-input-source-map.v1",
+  "status": "CURRENT_METADATA_PREPARATION_NOT_HISTORICALLY_ADMISSIBLE",
+  "control_id": "control:remdesivir-pre-actt1",
+  "knowledge_cutoff": "2020-02-20T23:59:59Z",
+  "decision_target": "Test whether intravenous remdesivir produces clinically meaningful benefit in hospitalized COVID-19 across recovery, mortality, ventilation, timing, severity, and serious-harm branches.",
+  "sources": [
+    {
+      "pmid": "32020029",
+      "pmcid": "PMC7054408",
+      "doi": "10.1038/s41422-020-0282-0",
+      "reported_publication_date": "2020-02-04",
+      "evidence_role": "SARS_COV_2_CELL_CULTURE_ACTIVITY"
+    },
+    {
+      "pmid": "32054787",
+      "pmcid": "PMC7104368",
+      "doi": "10.1073/pnas.1922083117",
+      "reported_publication_date": "2020-02-13",
+      "evidence_role": "MERS_COV_RHESUS_MACAQUE_ACTIVITY"
+    }
+  ],
+  "predeclared_translation_gaps": [
+    "CELL_CULTURE_ACTIVITY_IS_NOT_CLINICAL_BENEFIT",
+    "ANIMAL_EVIDENCE_FROM_ANOTHER_CORONAVIRUS_MAY_NOT_TRANSPORT",
+    "ENDPOINT_DISEASE_STAGE_AND_TREATMENT_TIMING_CAN_CHANGE_INTERPRETATION"
+  ],
+  "preparation_limits": [
+    "ACTT_1_FIRST_POSTING_AND_START_ON_2020_02_21_ARE_EXCLUDED",
+    "SOURCE_METADATA_WAS_RETRIEVED_IN_2026_NOT_FROM_AN_IMMUTABLE_PRE_CUTOFF_SNAPSHOT",
+    "THIS_FILE_IS_AUTHOR_CURATED_AND_NOT_A_RAW_SOURCE_RECEIPT"
+  ]
+}

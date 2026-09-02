@@ -27,57 +27,72 @@ from .canonical import (
 from .classifier import classifier_sha256, validate_classifier
 
 SCHEMA_VERSION = "causalfrontier.case.v1"
-COMPILER_VERSION = "0.1.0a2"
+COMPILER_VERSION = "0.1.0a4"
 FIXED_PARAMETER = "OPEN_MACHINE_VERIFIABLE_TRANSLATION_FROM_FRAGMENTED_BIOMEDICAL_EVIDENCE_TO_NEXT_FALSIFIABLE_ACTION"
 WORLD_PARTITION = "DECLARED_MUTUALLY_EXCLUSIVE_COLLECTIVELY_EXHAUSTIVE_WITH_RESIDUAL"
 OUTCOME_PARTITION = "PREDECLARED_TOTAL_WITH_CONTRADICTION_FAILURE_AND_NO_CALL"
-BOUNDARY = {
-    "clinical_authority": False,
-    "human_decision_authority": False,
-    "material_execution_authority": False,
-    "patient_level_data": False,
-    "prospective_benchmark_cases_scored_n": 0,
-    "prospective_experiments_executed_n": 0,
-    "prospective_results_recorded": False,
-}
-OUTCOME_CLASSES = {"INFORMATIVE", "CONTRADICTION", "FAILURE", "NO_CALL"}
-RELATIONS = {"SURVIVES", "EXCLUDES", "UNKNOWN"}
-DATA_CLASSES = {"PUBLIC_AGGREGATE", "SYNTHETIC"}
-SOURCE_AUTHORITIES = {"PUBLIC_DATA", "SYNTHETIC_DATA"}
-TEMPORAL_BASES = {
-    "DATASET_SNAPSHOT_DATE",
-    "REGISTRY_POSTED_DATE",
-    "SOURCE_PUBLICATION_DATE",
-    "SYNTHETIC_CREATION_DATE",
-}
-RETRIEVAL_STATES = {"COMPLETE", "PARTIAL", "FAILED", "NOT_RUN"}
-SEMANTIC_STATES = {
-    "USABLE_FOR_DECLARED_SCOPE",
-    "SYNTHETIC_FIXTURE_ONLY",
-    "CONTEXT_ONLY_PARTIAL",
-    "QUERY_FAILURE_NOT_EVIDENCE",
-    "NO_RESULT_NOT_ABSENCE",
-}
-USABLE_SEMANTIC_STATES = {
-    "USABLE_FOR_DECLARED_SCOPE",
-    "SYNTHETIC_FIXTURE_ONLY",
-}
-AUTHORITIES = {
-    "SOFTWARE",
-    "PUBLIC_DATA",
-    "SYNTHETIC_DATA",
-    "BIOLOGICAL",
-    "CLINICAL",
-    "HUMAN",
-    "LEGAL",
-    "MATERIAL",
-}
-GRANTED_AUTHORITIES = {"SOFTWARE", "PUBLIC_DATA", "SYNTHETIC_DATA"}
-EXECUTION_CLASSES = {
-    "READ_ONLY_COMPUTATION",
-    "NONINTERVENTIONAL_MEASUREMENT",
-    "MATERIAL_PERTURBATION",
-}
+_BOUNDARY_ITEMS = (
+    ("clinical_authority", False),
+    ("human_decision_authority", False),
+    ("material_execution_authority", False),
+    ("patient_level_data", False),
+    ("prospective_benchmark_cases_scored_n", 0),
+    ("prospective_experiments_executed_n", 0),
+    ("prospective_results_recorded", False),
+)
+# Kept as a compatibility view. Validators compare against the immutable bytes
+# below and produce fresh copies, so mutating this public mapping cannot alter
+# policy inside a long-lived Python process.
+BOUNDARY = dict(_BOUNDARY_ITEMS)
+BOUNDARY_CANONICAL = canonical_bytes(dict(_BOUNDARY_ITEMS))
+OUTCOME_CLASSES = frozenset({"INFORMATIVE", "CONTRADICTION", "FAILURE", "NO_CALL"})
+RELATIONS = frozenset({"SURVIVES", "EXCLUDES", "UNKNOWN"})
+DATA_CLASSES = frozenset({"PUBLIC_AGGREGATE", "SYNTHETIC"})
+SOURCE_AUTHORITIES = frozenset({"PUBLIC_DATA", "SYNTHETIC_DATA"})
+TEMPORAL_BASES = frozenset(
+    {
+        "DATASET_SNAPSHOT_DATE",
+        "REGISTRY_POSTED_DATE",
+        "SOURCE_PUBLICATION_DATE",
+        "SYNTHETIC_CREATION_DATE",
+    }
+)
+RETRIEVAL_STATES = frozenset({"COMPLETE", "PARTIAL", "FAILED", "NOT_RUN"})
+SEMANTIC_STATES = frozenset(
+    {
+        "USABLE_FOR_DECLARED_SCOPE",
+        "SYNTHETIC_FIXTURE_ONLY",
+        "CONTEXT_ONLY_PARTIAL",
+        "QUERY_FAILURE_NOT_EVIDENCE",
+        "NO_RESULT_NOT_ABSENCE",
+    }
+)
+USABLE_SEMANTIC_STATES = frozenset(
+    {
+        "USABLE_FOR_DECLARED_SCOPE",
+        "SYNTHETIC_FIXTURE_ONLY",
+    }
+)
+AUTHORITIES = frozenset(
+    {
+        "SOFTWARE",
+        "PUBLIC_DATA",
+        "SYNTHETIC_DATA",
+        "BIOLOGICAL",
+        "CLINICAL",
+        "HUMAN",
+        "LEGAL",
+        "MATERIAL",
+    }
+)
+GRANTED_AUTHORITIES = frozenset({"SOFTWARE", "PUBLIC_DATA", "SYNTHETIC_DATA"})
+EXECUTION_CLASSES = frozenset(
+    {
+        "READ_ONLY_COMPUTATION",
+        "NONINTERVENTIONAL_MEASUREMENT",
+        "MATERIAL_PERTURBATION",
+    }
+)
 RESOURCE_FIELDS = (
     "duration_minutes",
     "compute_units",
@@ -85,30 +100,32 @@ RESOURCE_FIELDS = (
     "reversibility_risk",
     "authority_burden",
 )
-FORBIDDEN_KEYS = {
-    "prior",
-    "priors",
-    "probability",
-    "probabilities",
-    "likelihood",
-    "likelihoods",
-    "posterior",
-    "posteriors",
-    "weight",
-    "weights",
-    "score",
-    "scores",
-    "utility",
-    "utilities",
-    "expected_value",
-    "observed_outcome",
-    "chosen_after_observation",
-}
+FORBIDDEN_KEYS = frozenset(
+    {
+        "prior",
+        "priors",
+        "probability",
+        "probabilities",
+        "likelihood",
+        "likelihoods",
+        "posterior",
+        "posteriors",
+        "weight",
+        "weights",
+        "score",
+        "scores",
+        "utility",
+        "utilities",
+        "expected_value",
+        "observed_outcome",
+        "chosen_after_observation",
+    }
+)
 SOURCE_TEXT_LIMIT = 1024 * 1024
 
 
 def fixed_boundary() -> Dict[str, Any]:
-    return dict(BOUNDARY)
+    return dict(_BOUNDARY_ITEMS)
 
 
 def _reject_forbidden_keys(value: Any, field: str = "case") -> None:
@@ -123,8 +140,8 @@ def _reject_forbidden_keys(value: Any, field: str = "case") -> None:
 
 
 def _validate_boundary(value: Any) -> Dict[str, Any]:
-    boundary = require_exact_keys(value, set(BOUNDARY), "boundary")
-    if boundary != BOUNDARY:
+    boundary = require_exact_keys(value, {key for key, _value in _BOUNDARY_ITEMS}, "boundary")
+    if canonical_bytes(boundary) != BOUNDARY_CANONICAL:
         raise CausalFrontierError("alpha boundary is immutable and grants no prospective or clinical authority")
     return boundary
 

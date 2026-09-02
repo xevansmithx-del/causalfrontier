@@ -84,14 +84,14 @@
       "required_authorities": ["SOFTWARE", "SYNTHETIC_DATA"],
       "resources": {"duration_minutes": 40, "compute_units": 8, "external_dependencies": 2, "reversibility_risk": 0, "authority_burden": 0},
       "classifier": {
-        "schema_version": "causalfrontier.classifier.v1",
-        "engine": "BUILTIN_TSV_INTEGER_V1",
+        "schema_version": "causalfrontier.classifier.v2",
+        "engine": "BUILTIN_STRICT_TSV_BOUNDED_INTEGER_V2",
         "source_id": "source:synthetic-aggregate-v1",
         "input_columns": ["context", "intervention", "response_index", "negative_control_index"],
         "rule": {"kind": "GROUPED_CONTRAST_RANGE_V1", "group_column": "context", "intervention_column": "intervention", "value_column": "response_index", "candidate_value": "candidate", "comparator_value": "comparator", "minimum_groups": 3, "low_max": 2, "high_min": 3},
         "outcome_map": {"CONTRADICTION": "outcome:global-contradiction", "FAILURE": "outcome:global-failure", "NO_CALL": "outcome:global-no-call", "LOW": "outcome:global-invariant", "HIGH": "outcome:global-context"}
       },
-      "classifier_sha256": "56ce6a2a1fb44ffe1ccf84d066fc1ac278fe867c421c76aec53fa0e70b818c03",
+      "classifier_sha256": "f775045d98ea325b5be7566de9ec3b8a03529788179f45a738fab7a7b832ef39",
       "outcome_partition": "PREDECLARED_TOTAL_WITH_CONTRADICTION_FAILURE_AND_NO_CALL",
       "outcomes": [
         {"id": "outcome:global-contradiction", "label": "Pattern contradicts every named world", "class": "CONTRADICTION"},
@@ -117,7 +117,7 @@
         {"world_id": "world:residual", "outcome_id": "outcome:global-invariant", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
         {"world_id": "world:residual", "outcome_id": "outcome:global-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]}
       ],
-      "branch_plan_sha256": "8edfd6d94c5a7fdd324755fc3114846041f60369b8760dbf84a293f96ce1c03f"
+      "branch_plan_sha256": "f0f7181a1de3bcbc0455be035a5a636eabd2d6f5b0624f971011179c20744ee2"
     },
     {
       "id": "experiment:held-out-invariance",
@@ -128,14 +128,14 @@
       "required_authorities": ["SOFTWARE", "SYNTHETIC_DATA"],
       "resources": {"duration_minutes": 10, "compute_units": 2, "external_dependencies": 1, "reversibility_risk": 0, "authority_burden": 0},
       "classifier": {
-        "schema_version": "causalfrontier.classifier.v1",
-        "engine": "BUILTIN_TSV_INTEGER_V1",
+        "schema_version": "causalfrontier.classifier.v2",
+        "engine": "BUILTIN_STRICT_TSV_BOUNDED_INTEGER_V2",
         "source_id": "source:synthetic-aggregate-v1",
         "input_columns": ["context", "intervention", "response_index", "negative_control_index"],
         "rule": {"kind": "HELDOUT_CONTRAST_ENVELOPE_V1", "group_column": "context", "intervention_column": "intervention", "value_column": "response_index", "candidate_value": "candidate", "comparator_value": "comparator", "training_groups": ["context_a", "context_b"], "heldout_group": "held_out", "outside_margin_min": 1},
         "outcome_map": {"CONTRADICTION": "outcome:held-contradiction", "FAILURE": "outcome:held-failure", "NO_CALL": "outcome:held-no-call", "LOW": "outcome:held-invariant", "HIGH": "outcome:held-context"}
       },
-      "classifier_sha256": "206ec4b97413126aad89b18188f22be3c8fe8695671f32356af70f1182133992",
+      "classifier_sha256": "a8a77462e061b1dee44067898acbb2cd78e3a672dde76cf9591388c63334d442",
       "outcome_partition": "PREDECLARED_TOTAL_WITH_CONTRADICTION_FAILURE_AND_NO_CALL",
       "outcomes": [
         {"id": "outcome:held-contradiction", "label": "Held-out pattern contradicts every named world", "class": "CONTRADICTION"},
@@ -161,7 +161,7 @@
         {"world_id": "world:residual", "outcome_id": "outcome:held-invariant", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
         {"world_id": "world:residual", "outcome_id": "outcome:held-no-call", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]}
       ],
-      "branch_plan_sha256": "4fca74e460ea51cd257ab80060da8e594448e9324b2f805ad0f992bcc3e6c0b6"
+      "branch_plan_sha256": "3df87b8c522a3826ac4ee3ac1a45af8e6ed9f5922aa59ff47b85a96149346443"
     },
     {
       "id": "experiment:negative-control",
@@ -172,14 +172,14 @@
       "required_authorities": ["SOFTWARE", "SYNTHETIC_DATA"],
       "resources": {"duration_minutes": 20, "compute_units": 3, "external_dependencies": 0, "reversibility_risk": 0, "authority_burden": 0},
       "classifier": {
-        "schema_version": "causalfrontier.classifier.v1",
-        "engine": "BUILTIN_TSV_INTEGER_V1",
+        "schema_version": "causalfrontier.classifier.v2",
+        "engine": "BUILTIN_STRICT_TSV_BOUNDED_INTEGER_V2",
         "source_id": "source:synthetic-aggregate-v1",
         "input_columns": ["context", "intervention", "response_index", "negative_control_index"],
         "rule": {"kind": "GROUPED_SHARED_VALUE_RANGE_V1", "group_column": "context", "intervention_column": "intervention", "value_column": "negative_control_index", "candidate_value": "candidate", "comparator_value": "comparator", "minimum_groups": 3, "low_max": 1, "high_min": 2},
         "outcome_map": {"CONTRADICTION": "outcome:control-contradiction", "FAILURE": "outcome:control-failure", "NO_CALL": "outcome:control-no-call", "LOW": "outcome:control-null", "HIGH": "outcome:control-tracks-context"}
       },
-      "classifier_sha256": "b42dad0266045fd9fa6f41e2c320b66c6a417e4290b70fb4466c447af6d15007",
+      "classifier_sha256": "2d1febd23c831734b1e4f86df3150224cb72a068200345d2ec0fcca5541545f0",
       "outcome_partition": "PREDECLARED_TOTAL_WITH_CONTRADICTION_FAILURE_AND_NO_CALL",
       "outcomes": [
         {"id": "outcome:control-contradiction", "label": "Control pattern contradicts every named world", "class": "CONTRADICTION"},
@@ -205,7 +205,7 @@
         {"world_id": "world:residual", "outcome_id": "outcome:control-null", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]},
         {"world_id": "world:residual", "outcome_id": "outcome:control-tracks-context", "relation": "UNKNOWN", "source_ids": ["source:synthetic-aggregate-v1"]}
       ],
-      "branch_plan_sha256": "a6fcb7df28d02323d61fcac152ef8db7cce8547aece5f55d550bd7a23882ec4f"
+      "branch_plan_sha256": "5ae706ed04b77a010f83be4268ca80adf9fde96fb481e9e122fdf96c64d02574"
     }
   ],
   "nonclaims": [

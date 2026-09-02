@@ -1,0 +1,1 @@
+{"complete":true,"opaque_id":"entrant:control:3e3472af3217ae8d1e8930e39556957ad2398da9a8d197c8b1ad25deec645193","policy_id":"CAUSALFRONTIER","reveal_accessed":false,"schema_version":"causalfrontier.calibration-resource-ledger.v1","stages":{"calendar":0,"compute":0,"direct_cost":0,"human":1,"model_tool_calls":0,"preprocessing":1,"retries":0,"retrieval":0}}
