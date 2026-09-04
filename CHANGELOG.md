@@ -4,6 +4,13 @@ All notable changes to CausalFrontier are documented here.
 
 ## Unreleased
 
+- Add a bounded publication-readiness package: maintainer governance and support
+  records, explicit AI-assistance disclosure, journal-gate and competitive
+  landscape assessments, navigable documentation, issue intake, and a
+  source-tree usability pilot that binds the guide separately from the pinned
+  engine and publishes exact synthetic pass/fail markers. Include these records
+  in the source distribution. This does not validate a packaged release,
+  scientific result, journal submission, novelty, adoption, or impact.
 - Advance the local development identity to `0.1.0a5` for the additive
   calibration V2 structural rehearsal. The fixed parameter remains exactly
   `OPEN_MACHINE_VERIFIABLE_TRANSLATION_FROM_FRAGMENTED_BIOMEDICAL_EVIDENCE_TO_NEXT_FALSIFIABLE_ACTION`.
