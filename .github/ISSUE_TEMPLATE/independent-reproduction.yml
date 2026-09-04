@@ -25,7 +25,7 @@ body:
     id: commands
     attributes:
       label: Commands run
-      description: Paste the exact commands from the source-tree reproduction pilot and their exit statuses.
+      description: Paste the exact commands, their exit statuses, and the observed analyze run_id and classify results_sha256 values.
       render: shell
     validations:
       required: true
