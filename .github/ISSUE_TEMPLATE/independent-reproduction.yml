@@ -1,0 +1,73 @@
+name: Independent reproduction
+description: Report an attributable install and synthetic workflow reproduction.
+title: "[reproduction]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing CausalFrontier independently. Use only public or synthetic data. Remove credentials, private paths, patient information, and restricted material before submitting.
+  - type: input
+    id: revision
+    attributes:
+      label: Exact revision
+      description: Git commit SHA or release tag tested.
+      placeholder: 40-character commit SHA or vX.Y.Z
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, architecture, Python version, uv version, and installation method.
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands run
+      description: Paste the exact commands from the independent reproduction walkthrough and their exit statuses.
+      render: shell
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Completed without undocumented changes
+        - Completed after an undocumented workaround
+        - Did not complete
+    validations:
+      required: true
+  - type: input
+    id: elapsed
+    attributes:
+      label: Elapsed setup and run time
+      placeholder: e.g. 18 minutes
+    validations:
+      required: true
+  - type: textarea
+    id: first_failure
+    attributes:
+      label: First failure or ambiguity
+      description: Give the first unexpected output or unclear instruction. Write “none” only if there was none.
+    validations:
+      required: true
+  - type: textarea
+    id: interpretation
+    attributes:
+      label: Your interpretation
+      description: In your own words, what does the output establish, and what does it not establish?
+    validations:
+      required: true
+  - type: checkboxes
+    id: independence
+    attributes:
+      label: Independence and data boundary
+      options:
+        - label: I am not the repository author and did not have an author perform the commands for me.
+          required: true
+        - label: I used no patient-level, private, restricted, or wet-lab data.
+          required: true
+        - label: I understand this public issue is attributable evidence and may be cited as a reproduction result.
+          required: true

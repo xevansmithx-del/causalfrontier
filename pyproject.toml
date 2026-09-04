@@ -50,8 +50,10 @@ causalfrontier = "causalfrontier.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/xevansmithx-del/causalfrontier"
+Documentation = "https://github.com/xevansmithx-del/causalfrontier/blob/main/docs/index.md"
 Repository = "https://github.com/xevansmithx-del/causalfrontier"
 Issues = "https://github.com/xevansmithx-del/causalfrontier/issues"
+Changelog = "https://github.com/xevansmithx-del/causalfrontier/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

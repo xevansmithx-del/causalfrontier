@@ -1,10 +1,31 @@
 # CausalFrontier
 
+[![CI](https://github.com/xevansmithx-del/causalfrontier/actions/workflows/ci.yml/badge.svg)](https://github.com/xevansmithx-del/causalfrontier/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/xevansmithx-del/causalfrontier/actions/workflows/codeql.yml/badge.svg)](https://github.com/xevansmithx-del/causalfrontier/actions/workflows/codeql.yml)
+[![Python 3.10–3.14](https://img.shields.io/badge/python-3.10%E2%80%933.14-blue)](https://www.python.org/)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/xevansmithx-del/causalfrontier?include_prereleases&label=release)](https://github.com/xevansmithx-del/causalfrontier/releases)
+
+> **Research status:** structural pre-alpha. The development tree is
+> `0.1.0a5`; the latest packaged release is `v0.1.0a2`. Documented independent
+> scientific uses, prospectively scored cases, and semantically verified
+> controls are all zero. See the
+> [publication-readiness assessment](docs/publication-readiness-2026-09-04.md).
+
 CausalFrontier is a pre-alpha compiler for one narrow but potentially important scientific task: turn a frozen evidence package and explicit competing causal worlds into an auditable frontier of next falsification checks.
 
 The long-range idea is a public causal challenge network in which biomedical claims become replayable, adversarially testable objects instead of prose conclusions. This repository is only the first software slice. It shows that a small authored case can be file-bound, open-world through a residual, branch-complete through failure and contradiction, compared without priors, and replayed with checkpointed local memory.
 
 It does **not** discover a drug, infer a causal effect, validate a biological mechanism, recommend care, or save lives. Those goals require independent evidence and validation far beyond this prototype.
+
+## Start here
+
+- **New users:** [independent reproduction walkthrough](docs/independent-reproduction.md)
+- **Reviewers:** [validation record](VALIDATION.md) and [exact source manifest](SOURCE_SHA256SUMS.txt)
+- **Researchers:** [scientific problem and falsifiable success criteria](docs/problem-selection.md)
+- **Maintainers:** [contribution guide](CONTRIBUTING.md), [governance](GOVERNANCE.md), and [support](SUPPORT.md)
+- **Journal planning:** [publication-readiness assessment](docs/publication-readiness-2026-09-04.md)
+- **All documentation:** [documentation index](docs/index.md)
 
 ## What the prototype does
 
