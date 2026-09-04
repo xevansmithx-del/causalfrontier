@@ -2,7 +2,8 @@
 
 ## Where to ask
 
-- Reproduction results: use the **Independent reproduction** issue template.
+- Source-tree pilot results: use the **External source-tree reproduction** issue
+  template.
 - Reproducible defects: open a public issue with the smallest synthetic example,
   exact commit or release, environment, command, and observed output.
 - Feature or protocol proposals: open a focused issue describing the scientific

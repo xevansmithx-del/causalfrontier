@@ -3,8 +3,8 @@
 Contributions are welcome when they preserve the fail-closed structural and claim
 boundaries.
 
-For installation-only feedback, use the
-[independent reproduction walkthrough](docs/independent-reproduction.md) and its
+For source-tree environment and usability feedback, use the
+[source-tree reproduction pilot](docs/independent-reproduction.md) and its
 GitHub issue template. General support boundaries are in [SUPPORT.md](SUPPORT.md),
 and project decisions follow [GOVERNANCE.md](GOVERNANCE.md).
 

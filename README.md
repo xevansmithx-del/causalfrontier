@@ -20,7 +20,7 @@ It does **not** discover a drug, infer a causal effect, validate a biological me
 
 ## Start here
 
-- **New users:** [independent reproduction walkthrough](docs/independent-reproduction.md)
+- **New users:** [source-tree reproduction pilot](docs/independent-reproduction.md)
 - **Reviewers:** [validation record](VALIDATION.md) and [exact source manifest](SOURCE_SHA256SUMS.txt)
 - **Researchers:** [scientific problem and falsifiable success criteria](docs/problem-selection.md)
 - **Maintainers:** [contribution guide](CONTRIBUTING.md), [governance](GOVERNANCE.md), and [support](SUPPORT.md)

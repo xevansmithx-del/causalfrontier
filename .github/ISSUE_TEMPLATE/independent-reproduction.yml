@@ -1,11 +1,11 @@
-name: Independent reproduction
-description: Report an attributable install and synthetic workflow reproduction.
+name: External source-tree reproduction
+description: Report a self-declared external run of the pinned synthetic workflow.
 title: "[reproduction]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Thank you for testing CausalFrontier independently. Use only public or synthetic data. Remove credentials, private paths, patient information, and restricted material before submitting.
+        Thank you for reporting a source-tree test. This report is self-declared and attributed to your GitHub account; it does not by itself authenticate identity, independence, a packaged release, or a scientific result. Use only public or synthetic data. Remove credentials, private paths, patient information, and restricted material before submitting.
   - type: input
     id: revision
     attributes:
@@ -25,7 +25,7 @@ body:
     id: commands
     attributes:
       label: Commands run
-      description: Paste the exact commands from the independent reproduction walkthrough and their exit statuses.
+      description: Paste the exact commands from the source-tree reproduction pilot and their exit statuses.
       render: shell
     validations:
       required: true
@@ -60,14 +60,23 @@ body:
       description: In your own words, what does the output establish, and what does it not establish?
     validations:
       required: true
+  - type: textarea
+    id: relationship
+    attributes:
+      label: Prior project involvement or conflicts
+      description: State any prior contribution, collaboration, employment, supervision, author assistance, or other relationship with the maintainer. Write “none declared” if none.
+    validations:
+      required: true
   - type: checkboxes
     id: independence
     attributes:
       label: Independence and data boundary
       options:
-        - label: I am not the repository author and did not have an author perform the commands for me.
+        - label: I did not author or contribute to the tested revision, and no author performed or directed the commands for me.
           required: true
         - label: I used no patient-level, private, restricted, or wet-lab data.
+          required: true
+        - label: I understand this is a self-declared source-tree report; maintainers have not authenticated my identity or independence.
           required: true
         - label: I understand this public issue is attributable evidence and may be cited as a reproduction result.
           required: true

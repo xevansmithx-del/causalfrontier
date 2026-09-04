@@ -5,17 +5,18 @@
 CausalFrontier is **not submission-ready** as a research-software paper or a
 biomedical methods paper. Its local software-engineering evidence is strong for
 a pre-alpha project, but the decisive publication gaps are external research
-use, independent reproduction, real-world semantic validation, executed
-comparators, and public development history. Copyediting cannot close those
-gaps.
+use, authenticated independent release reproduction, real-world semantic
+validation, executed comparators, and public development history. Copyediting
+cannot close those gaps.
 
 The appropriate next move is to mature and test CausalFrontier, not to replace
 it with another new repository. A replacement would reset the development,
 adoption, and validation clocks while leaving the same evidence bottleneck.
 
-This assessment applies to development commit
-`1995cf7379523c952dc19f56fdc01b15a9212583` (`0.1.0a5`). It is a planning
-record, not peer review, editorial advice, or a prediction of acceptance.
+The software-engine evidence in this assessment applies to development commit
+`1995cf7379523c952dc19f56fdc01b15a9212583` (`0.1.0a5`). That commit is not a
+stable or archived release. This document is a planning record, not peer review,
+editorial advice, or a prediction of acceptance.
 
 ## Current evidence
 
@@ -28,7 +29,7 @@ record, not peer review, editorial advice, or a prediction of acceptance.
 | Inputs | Public-aggregate or synthetic boundary; current calibration is known-hindsight | Safe for development, insufficient for empirical utility claims |
 | Semantic controls | Positive, failed-translation, and ambiguous controls are structurally present; semantically verified controls = 0 | Scientific scoring must remain disabled |
 | Adoption | No documented independent installation, research workflow, external contribution, or reproduced result | No defensible realized-impact claim |
-| Benchmark | Required expert, retrieval, graph, random, and simple-rule executions are absent | No comparative-performance or tenfold claim |
+| Benchmark | Required real-world scientific benchmark executions for expert, retrieval, graph, random, and simple-rule comparators are absent; synthetic comparator plumbing is not counted | No comparative-performance or tenfold claim |
 | Maturity | Pre-alpha; public repository created in late August 2026 | Too early for venues that require sustained public development |
 
 Repository traffic is not counted as adoption. Automated builds, dependency
@@ -43,19 +44,21 @@ must be rechecked before submission.
 
 | Venue | Relevant current gate | Verdict now |
 |---|---|---|
-| [Journal of Open Source Software](https://joss.readthedocs.io/en/latest/submitting.html) | Feature-complete research software, demonstrated research use, good open-source practice, and more than six months of active public development; the [paper format](https://joss.readthedocs.io/en/latest/paper.html) also requires sections on the need, field, design, impact, and AI use | **No-go.** Public history is about one week, the software is pre-alpha, demonstrated research use is absent, and no paper or archived DOI exists. A conservative earliest time-gate date is 2027-03-01, contingent on real iterative use and development—not merely waiting. |
-| [Nature Methods](https://www.nature.com/nmeth/submission-guidelines/about/aims) | Novel methods with immediate practical relevance and potential to advance biological applications; central code must satisfy the journal's [software and code guidance](https://www.nature.com/documents/GuidelinesCodePublication.pdf) | **No-go.** No real biological application, independent user study, state-of-the-art performance comparison, or generalizability evidence exists. |
+| [Journal of Open Source Software](https://joss.readthedocs.io/en/latest/submitting.html) | Feature-complete research software, demonstrated research use, good open-source practice, and more than six months of active public development; the [paper format](https://joss.readthedocs.io/en/latest/paper.html) also requires sections on the need, field, design, impact, and AI use | **No-go.** Public history is about one week, the software is pre-alpha, demonstrated research use is absent, and no paper exists. Under the current JOSS workflow, a tagged archive and DOI are acceptance-stage deliverables, not today's pre-review blocker. A conservative earliest time-gate date is 2027-03-01, contingent on active public development and demonstrated use—not merely waiting. |
+| [Nature Methods](https://www.nature.com/nmeth/submission-guidelines/about/aims) | Novel methods with immediate practical relevance and potential to advance biological applications; central code must satisfy the journal's [software and code guidance](https://www.nature.com/documents/GuidelinesCodePublication.pdf) | **No-go.** No real biological application, documented testing by colleagues unfamiliar with the tool, state-of-the-art performance comparison, or generalizability evidence exists. |
 | [PLOS Computational Biology](https://journals.plos.org/ploscompbiol/s/journal-information) Software article | Outstanding software of broad utility that can provide new biological insight, with reproducible code/data and the [required software sharing](https://journals.plos.org/ploscompbiol/s/materials-and-software-sharing) | **No-go.** No real-world biological insight, broad-utility evidence, or independent adoption is established. Wet-lab validation is not categorically required, but qualifying real-world evidence is. |
-| [Bioinformatics](https://academic.oup.com/bioinformatics/pages/author-guidelines) Application Note or Original Paper | Nontrivial software, stable availability, realistic biological use, and appropriate comparison on common or actual biological data | **No-go.** The repository lacks a realistic validated use case, common-dataset comparison, and a reviewed support commitment. |
+| [Bioinformatics](https://academic.oup.com/bioinformatics/pages/author-guidelines) Application Note or Original Paper | Application Notes require nontrivial software, clear availability and implementation, broad-machine usability, and a two-year availability commitment; Original Papers generally require actual biological data, with relevant state-of-the-art comparisons | **No-go for either route.** No realistic validated use or relevant empirical comparator exists; the Application Note support commitment and Original Paper biological dataset are also absent. |
 
 ## Evidence-first publication ladder
 
 Advance only when the prior rung is independently checkable.
 
-1. **Independent reproduction.** At least three people outside the development
-   workflow install the exact release and complete the
-   [reproduction walkthrough](independent-reproduction.md). Record failures as
-   first-class results.
+1. **Source-tree reproduction pilot.** Before a current stable release exists,
+   at least three self-declared users outside the development workflow reproduce
+   the exact identified development commit. Treat these as documentation and
+   usability pilots—not release validation, authenticated independence,
+   adoption, or scientific evidence. Repeat the exercise against the exact
+   archived release once one exists.
 2. **Semantic calibration.** An externally authenticated, phase-separated
    review adjudicates the precommitted positive, failed-translation, and
    ambiguous controls. All three are required before any score.
@@ -77,10 +80,16 @@ Advance only when the prior rung is independently checkable.
 
 ## Go, pivot, or stop
 
-Continue CausalFrontier if independent users can reproduce it, external
-reviewers can agree on the case representation without hidden outcome access,
-and it beats at least one meaningful comparator without sacrificing calibrated
-abstention or safety boundaries.
+As an interim engineering continuation criterion—not a publication or
+tenfold-claim gate—continue CausalFrontier if external users can reproduce the
+source tree and, once one exists, authenticated independent users can reproduce
+the reviewed release; external reviewers can agree on the case representation
+without hidden outcome access; and it beats at least one meaningful comparator
+without sacrificing calibrated abstention or safety boundaries.
+
+Beating one comparator cannot satisfy the fixed program claim; that still
+requires the complete domain × expert/retrieval/graph/random/simple-rule
+conjunction in the [goal–claim contract](goal-claim-contract-v1.md).
 
 Redesign the representation if independent encoders cannot reach the
 predeclared agreement threshold, the residual makes every action

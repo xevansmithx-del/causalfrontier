@@ -6,7 +6,7 @@ answers your question.
 
 ## Use and reproduce
 
-- [Independent reproduction](independent-reproduction.md) — install, run, and
+- [Source-tree reproduction pilot](independent-reproduction.md) — sync, run, and
   report one public/synthetic workflow.
 - [Architecture](architecture.md) — system boundary, data flow, and design
   decisions.
