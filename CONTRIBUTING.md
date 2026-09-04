@@ -3,6 +3,11 @@
 Contributions are welcome when they preserve the fail-closed structural and claim
 boundaries.
 
+For source-tree environment and usability feedback, use the
+[source-tree reproduction pilot](docs/independent-reproduction.md) and its
+GitHub issue template. General support boundaries are in [SUPPORT.md](SUPPORT.md),
+and project decisions follow [GOVERNANCE.md](GOVERNANCE.md).
+
 1. Fork the repository and create a focused branch.
 2. Do not add credentials, private paths, restricted data, raw sequences, patient
    records, or evidence without complete rights and provenance.
@@ -13,6 +18,10 @@ boundaries.
    checks.
 5. Submit a pull request describing the failure mode addressed and exact acceptance
    evidence.
+
+Pre-commit hooks can be installed with `uv run pre-commit install`. Stage only
+the files relevant to the change; never include credentials, private workspace
+records, build caches, or session artifacts.
 
 No contribution may invent a prior, treat `UNKNOWN` as evidence, record an authored
 relation as an observation, raise the prospective benchmark count, or imply causal,
