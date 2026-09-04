@@ -4,6 +4,12 @@ All notable changes to CausalFrontier are documented here.
 
 ## Unreleased
 
+- Correct the external source-tree pilot after hostile review: declare its
+  OpenSSL 3.x and single-hard-link executable contract, identify Ubuntu as the
+  only CI-verified operating system, provide bounded macOS and conda-family
+  preflight guidance, and explicitly exclude packaged release `v0.1.0a2` from
+  the pinned development-source exercise. This closes a documentation defect;
+  it does not add platform support or validate a release.
 - Add a bounded publication-readiness package: maintainer governance and support
   records, explicit AI-assistance disclosure, journal-gate and competitive
   landscape assessments, navigable documentation, issue intake, and a

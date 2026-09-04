@@ -19,6 +19,39 @@ credentials or sensitive logs to a public issue.
 - [uv](https://docs.astral.sh/uv/)
 - a supported CPython runtime (3.10 through 3.14)
 - a POSIX-like shell for the commands below
+- an OpenSSL 3.x executable on `PATH` whose resolved executable is a regular
+  file with exactly one hard link (`st_nlink == 1`)
+
+The complete automated matrix is currently CI-verified on Ubuntu only. The
+macOS instructions below are a source-tree usability pilot, not a claim of
+verified platform support. Stock macOS `/usr/bin/openssl` reports LibreSSL and
+does not satisfy the OpenSSL 3.x contract. Conda, mamba, and pixi commonly
+hard-link package files into environments, so their otherwise valid OpenSSL 3
+binary can have `st_nlink > 1` and will be rejected intentionally: another
+hard-link name could mutate a binary after its digest was checkpointed.
+
+Prefer an inode-distinct system installation, such as Homebrew OpenSSL 3 on
+macOS, and put its actual `bin` directory first on `PATH`:
+
+```bash
+PATH="$(brew --prefix openssl@3)/bin:$PATH"
+export PATH
+```
+
+When conda, mamba, or pixi is active, keep the Python environment active but
+put a non-conda OpenSSL 3 installation first on `PATH`. On macOS, use the
+Homebrew command above. On Linux, use an operating-system OpenSSL 3 package and
+its real executable path. Do not copy or relink the conda-family binary as a
+workaround: CausalFrontier itself snapshots only the executable bytes into a
+private directory and strips loader-related environment variables before
+replay, so binaries that require environment-relative libraries are
+incompatible. If the preflight below fails and no external OpenSSL 3 is
+available, stop and report the environment as unsupported rather than
+weakening the verifier.
+
+The pinned engine step below performs a bounded preflight inside the same locked
+`uv run` context as the tests. Do not execute an unverified candidate merely to
+inspect its version.
 
 ## Bind the instructions being evaluated
 
@@ -97,8 +130,11 @@ engine revision.
 
 ## Reproduce the pinned/tested development baseline from source
 
-The current V2 engine baseline is the following exact development commit. It is
-not a stable or archived release:
+The only eligible engine for this pilot is the following exact development
+commit. It is not a stable or archived release. Packaged release `v0.1.0a2` is
+explicitly excluded: it is internally self-consistent but is not aligned with
+the current source-tree example or this guide. Do not substitute a tag, branch,
+or newer commit for the pinned engine revision:
 
 ```bash
 if guide_root=$(pwd -P) &&
@@ -131,8 +167,94 @@ else
 fi
 ```
 
-Do not continue unless the block prints `Setup ready`. The final `false`
-returns a failing status without terminating an interactive parent shell.
+Do not continue unless the setup block prints `Setup ready`. Now validate and
+snapshot the exact OpenSSL resolved inside the locked environment, then replay
+only its private byte copy through CausalFrontier's bounded subprocess runner:
+
+```bash
+uv run --frozen --no-sync python - <<'PY'
+import hashlib
+import os
+import pathlib
+import shutil
+import stat
+import tempfile
+
+from causalfrontier import attestation
+
+found = shutil.which("openssl")
+if found is None:
+    raise SystemExit("OpenSSL 3.x is not on PATH inside the locked environment")
+path = pathlib.Path(found).resolve(strict=True)
+try:
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        before = os.fstat(descriptor)
+        if (
+            not stat.S_ISREG(before.st_mode)
+            or before.st_nlink != 1
+            or before.st_size > attestation.MAX_OPENSSL_BYTES
+            or before.st_mode & 0o111 == 0
+        ):
+            raise SystemExit("OpenSSL must be a bounded, executable, single-link regular file")
+        digest = hashlib.sha256()
+        total = 0
+        remaining = attestation.MAX_OPENSSL_BYTES + 1
+        while remaining:
+            chunk = os.read(descriptor, min(remaining, 65536))
+            if not chunk:
+                break
+            digest.update(chunk)
+            total += len(chunk)
+            remaining -= len(chunk)
+        after = os.fstat(descriptor)
+    finally:
+        os.close(descriptor)
+except OSError:
+    raise SystemExit("OpenSSL candidate cannot be read safely") from None
+if (
+    total > attestation.MAX_OPENSSL_BYTES
+    or total != before.st_size
+    or (before.st_size, before.st_mtime_ns, before.st_ctime_ns, before.st_nlink)
+    != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_nlink)
+):
+    raise SystemExit("OpenSSL candidate changed during the bounded digest read")
+expected = digest.hexdigest()
+try:
+    snapshot, snapshot_digest = attestation._read_openssl_binary(path, expected)
+    with tempfile.TemporaryDirectory(prefix="causalfrontier-openssl-preflight-") as temporary:
+        root = pathlib.Path(temporary)
+        replay = root / "openssl-verifier"
+        config = root / "openssl.cnf"
+        (root / "empty-cert-directory").mkdir(mode=0o700)
+        attestation._write_private(replay, snapshot)
+        replay.chmod(0o500)
+        attestation._write_private(config, attestation.OPENSSL_CONFIG)
+        version = attestation._run_openssl(
+            replay,
+            ["version"],
+            "preflight version inspection",
+            root,
+            config,
+        ).strip()
+except (OSError, attestation.CausalFrontierError):
+    raise SystemExit(
+        "OpenSSL binary cannot be replayed in isolation; use an external "
+        "non-conda OpenSSL 3 installation"
+    ) from None
+if attestation.OPENSSL_VERSION.fullmatch(version) is None:
+    raise SystemExit(f"unsupported isolated OpenSSL version: {version}")
+print(f"openssl_path={path}")
+print(f"openssl_sha256={snapshot_digest}")
+print(f"openssl_version={version}")
+print("openssl_nlink=1")
+print("openssl_isolated_replay=pass")
+PY
+```
+
+Do not continue unless the preflight prints `openssl_isolated_replay=pass`.
+The setup block's final `false` returns a failing status without terminating an
+interactive parent shell.
 
 Capture the environment before running the tool:
 
@@ -184,6 +306,7 @@ value copied from another revision.
 | Guide source-freeze check | 0 | Every file reports `OK`; guide digest matches its manifest row |
 | Engine `git rev-parse HEAD` | 0 | `1995cf7379523c952dc19f56fdc01b15a9212583` |
 | `uv sync --frozen --extra dev` | 0 | Locked environment sync completes |
+| OpenSSL preflight | 0 | OpenSSL 3.x; resolved executable is recorded; `openssl_nlink=1`; `openssl_isolated_replay=pass` |
 | `causalfrontier --version` | 0 | CLI version `0.1.0a5` |
 | `analyze` | 0 | Embedded compiler version `0.1.0a4`; `run_id`/`analysis_sha256` `84346c5eecebbfdeb5909e26535ed5661b655a840fe2cd0c0a64a0d78d379c4d` |
 | `classify` | 0 | `results_sha256` `2c9ddf255dca69aa14c756f3bdd253e2769af03d772fbbfee0419f6e70feb188` |
