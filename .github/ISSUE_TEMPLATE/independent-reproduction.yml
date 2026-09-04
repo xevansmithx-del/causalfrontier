@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thank you for reporting a source-tree test. This report is self-declared and attributed to your GitHub account; it does not by itself authenticate identity, independence, a packaged release, or a scientific result. Use only public or synthetic data. Remove credentials, private paths, patient information, and restricted material before submitting.
+        Thank you for reporting a source-tree test. This report is self-declared and attributed to your GitHub account; it does not by itself authenticate identity, independence, a packaged release, or a scientific result. The current pilot tests only engine commit 1995cf7379523c952dc19f56fdc01b15a9212583; packaged release v0.1.0a2 is explicitly excluded because it is not aligned with the current source-tree example or guide. Use only public or synthetic data. Remove credentials, private paths, patient information, and restricted material before submitting.
   - type: input
     id: guide_revision
     attributes:
@@ -26,8 +26,8 @@ body:
     id: engine_revision
     attributes:
       label: Exact engine revision
-      description: Full Git commit SHA of the engine worktree tested.
-      placeholder: 40-character commit SHA
+      description: Full Git commit SHA of the engine worktree tested; the current pilot requires 1995cf7379523c952dc19f56fdc01b15a9212583 and does not accept release v0.1.0a2.
+      placeholder: 1995cf7379523c952dc19f56fdc01b15a9212583
     validations:
       required: true
   - type: textarea
