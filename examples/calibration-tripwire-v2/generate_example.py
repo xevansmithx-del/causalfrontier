@@ -9,12 +9,14 @@ API, finalizes the local structural report, and then replays its verifier.
 from __future__ import annotations
 
 import argparse
+import errno
+import sys
 from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
 from causalfrontier import calibration_v2 as v2
-from causalfrontier.canonical import canonical_bytes, sha256_bytes
+from causalfrontier.canonical import CausalFrontierError, canonical_bytes, io_error, sha256_bytes
 from causalfrontier.model import FIXED_PARAMETER, fixed_boundary
 
 SCHEMA = "causalfrontier.calibration-v2-public-metadata-example.v1"
@@ -720,8 +722,18 @@ def generate(output: Path) -> dict[str, Any]:
     """
 
     if output.is_symlink():
-        raise ValueError("output must be a new directory; historical snapshots are never overwritten")
-    output = output.resolve()
+        raise CausalFrontierError(
+            "output must be a new directory; historical snapshots are never overwritten",
+            reason_code="SAFE_PATH_REJECTED",
+            operation="example_generate",
+        )
+    try:
+        output = output.resolve()
+    except RuntimeError:
+        # Python 3.10-3.12 can report a symlink loop as RuntimeError.
+        raise CausalFrontierError(
+            "output path cannot be resolved safely", reason_code="SAFE_PATH_REJECTED", operation="example_generate"
+        ) from None
     output.mkdir(parents=True, exist_ok=False)
     entrant_root = output / "entrant-root"
     external = output / "external-zones"
@@ -1021,8 +1033,23 @@ def main() -> int:
         help="new directory for a rehearsal bound to the executing module; existing directories are refused",
     )
     args = parser.parse_args()
-    checkpoints = generate(args.output)
-    print(canonical_bytes(checkpoints).decode("utf-8"))
+    try:
+        checkpoints = generate(args.output)
+        print(canonical_bytes(checkpoints).decode("utf-8"))
+    except (OSError, CausalFrontierError) as exc:
+        if isinstance(exc, CausalFrontierError):
+            diagnostic = exc.diagnostic()
+        elif exc.errno == errno.EEXIST:
+            diagnostic = CausalFrontierError(
+                "output already exists", reason_code="OUTPUT_EXISTS", operation="example_generate", errno=exc.errno
+            ).diagnostic()
+        else:
+            diagnostic = io_error(exc, "example generation failed", operation="example_generate").diagnostic()
+        print(
+            canonical_bytes({"schema_version": "causalfrontier.error.v1", **diagnostic}).decode("utf-8"),
+            file=sys.stderr,
+        )
+        return 2
     return 0
 
 

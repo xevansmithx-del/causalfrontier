@@ -54,6 +54,19 @@ before submission.
 | [PLOS Computational Biology](https://journals.plos.org/ploscompbiol/s/submission-guidelines) Software article | Broad utility and a significant advance providing biological insight, plus wide adoption or credible promise of it; the [sharing policy](https://journals.plos.org/ploscompbiol/s/materials-and-software-sharing) requires a well-established project with an open repository available for an extended period | **No-go.** Biological insight, broad utility, adoption promise, and sufficient development history remain unestablished. Deposit source, license, documentation, test data, and parameters for reproducible review; the exact submission version must be supplied as supporting information and linked. Wet-lab validation and a DOI are not categorical requirements of this route. |
 | [Bioinformatics](https://academic.oup.com/bioinformatics/pages/author-guidelines) Application Note or Original Paper | Original Papers require actual biological data except extremely well-justified simulation-only cases. Application Notes require anonymous stable review access, exact software/test-data archival, two-year availability, broad machine compatibility, and low installation burden | **No-go for either route.** Realistic validated use and relevant empirical comparisons are absent. The Application Note availability commitment and the Original Paper biological-data requirement remain open. Article type and subject category determine the applicable comparison and availability rules. |
 
+JOSS's [review criteria](https://joss.readthedocs.io/en/latest/review_criteria.html)
+also require a reasoned case for building a new tool rather than contributing
+to existing alternatives: identify the scholarly contribution, unmet research
+need, and gap. Evidence of releases or version tags remains part of pre-review
+screening; it is distinct from the exact reviewed archive and DOI requested
+after successful review.
+
+For [PLOS Software articles](https://journals.plos.org/ploscompbiol/s/submission-guidelines),
+the biological insight may appear in the software article or in cited work
+published elsewhere. Wide adoption **or** credible promise of broad adoption
+is acceptable; neither is established here. A cover letter explaining how the
+Software criteria are met is required.
+
 The [AI-use record](../AI_USAGE.md) leaves accountable-human review pending.
 JOSS requires disclosure of systems, versions, and scope, plus human confirmation
 of review, editing, validation, and core design decisions. Its author
@@ -62,7 +75,10 @@ translation. See the [JOSS policy](https://joss.readthedocs.io/en/latest/submitt
 
 Bioinformatics permits accountable code and documentation assistance but bars
 prompt-generated manuscript text, figures, tables, and references: researchers
-must write the paper. Permitted use still needs detailed disclosure under the
+must write the paper, and AI systems cannot be authors. Disclose AI use in both
+the cover letter and the manuscript's Methods or Acknowledgements; permitted
+assistance with paper content also needs sufficient detail in supplementary
+materials under the
 [author guidelines](https://academic.oup.com/BIOINFORMATICS/pages/author-guidelines).
 The present planning document is not a manuscript or an attestation that these
 requirements have been met.

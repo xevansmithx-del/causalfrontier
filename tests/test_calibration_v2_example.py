@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import errno
+import importlib.util
 import json
 import os
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 from causalfrontier import calibration_v2 as v2
 from causalfrontier.canonical import canonical_bytes, sha256_bytes
@@ -243,9 +247,74 @@ def test_v2_example_generator_refuses_existing_output_without_rewriting(tmp_path
     marker = destination / "checkpoint.txt"
     marker.write_bytes(b"historical bytes must stay intact\n")
     completed = _run_generator(destination)
-    assert completed.returncode != 0
+    assert completed.returncode == 2
+    assert completed.stdout == b""
+    assert json.loads(completed.stderr) == {
+        "schema_version": "causalfrontier.error.v1",
+        "reason_code": "OUTPUT_EXISTS",
+        "operation": "example_generate",
+        "errno": errno.EEXIST,
+    }
+    assert str(destination).encode() not in completed.stderr
+    assert b"Traceback" not in completed.stderr
     assert list(destination.iterdir()) == [marker]
     assert marker.read_bytes() == b"historical bytes must stay intact\n"
+
+
+@pytest.mark.parametrize("target_exists", [True, False])
+def test_v2_example_generator_refuses_symlink_output_with_path_free_diagnostic(
+    tmp_path: Path, target_exists: bool
+) -> None:
+    target = tmp_path / "target"
+    if target_exists:
+        target.mkdir()
+    destination = tmp_path / "symlink"
+    destination.symlink_to(target, target_is_directory=True)
+    completed = _run_generator(destination)
+    assert completed.returncode == 2
+    assert completed.stdout == b""
+    assert json.loads(completed.stderr) == {
+        "schema_version": "causalfrontier.error.v1",
+        "reason_code": "SAFE_PATH_REJECTED",
+        "operation": "example_generate",
+        "errno": None,
+    }
+    assert destination.is_symlink()
+    assert target.exists() is target_exists
+    if target_exists:
+        assert list(target.iterdir()) == []
+
+
+@pytest.mark.parametrize(
+    ("number", "reason"),
+    [(errno.EACCES, "ENVIRONMENT_DENIED"), (errno.ENOENT, "INPUT_MISSING"), (errno.EEXIST, "OUTPUT_EXISTS")],
+)
+def test_v2_generator_io_failures_have_numeric_diagnostics_without_paths(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], tmp_path: Path, number: int, reason: str
+) -> None:
+    path = EXAMPLE / "generate_example.py"
+    spec = importlib.util.spec_from_file_location("v2_example_generator", path)
+    assert spec is not None and spec.loader is not None
+    generator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generator)
+
+    def failed(_output: Path) -> dict:
+        raise OSError(number, "synthetic private operating-system detail", "/private/synthetic/output")
+
+    monkeypatch.setattr(generator, "generate", failed)
+    monkeypatch.setattr(sys, "argv", [str(path), "--output", str(tmp_path / "output")])
+    assert generator.main() == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert json.loads(captured.err) == {
+        "schema_version": "causalfrontier.error.v1",
+        "reason_code": reason,
+        "operation": "example_generate",
+        "errno": number,
+    }
+    assert "/private/synthetic" not in captured.err
+    assert "Traceback" not in captured.err
+    assert not (tmp_path / "output").exists()
 
 
 def test_v2_example_generator_requires_an_explicit_output() -> None:

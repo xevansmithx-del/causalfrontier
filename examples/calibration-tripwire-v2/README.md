@@ -43,7 +43,15 @@ Generate a current-source rehearsal in a new directory from the repository root:
   --output /tmp/causalfrontier-v2-new-rehearsal
 ```
 
-The output directory must not already exist. The generator binds the module
+The output directory must not already exist. Expected filesystem and protocol
+failures return exit code `2` with a single `causalfrontier.error.v1` JSON object
+on stderr, excluding paths, messages, and tracebacks. An existing destination
+reports `OUTPUT_EXISTS`; a symlink destination reports `SAFE_PATH_REJECTED`.
+Argument syntax errors retain argparse's text format. A failure after output
+creation can leave an incomplete new directory; it is not a successful
+checkpoint, and retrying requires a fresh destination.
+
+The generator binds the module
 actually imported by its Python environment. When those source bytes change,
 the toolbox declaration and dependent protocol commitments also change, even
 when the decisions and claim boundaries stay identical. This is a new local
