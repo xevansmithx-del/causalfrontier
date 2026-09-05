@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from .attestation import verify_rfc3161_attestation
+from .authoring import freeze_draft
 from .blind import (
     bind_blind_selection_precommitment,
     build_sanitized_entrant_view,
@@ -105,6 +106,11 @@ def parser() -> argparse.ArgumentParser:
     doctor.add_argument("--expected-openssl-sha256", help="caller-preserved SHA-256 of the trusted executable")
     analyze = commands.add_parser("analyze", help="analyze a frozen case root")
     analyze.add_argument("case_root", type=Path)
+    freeze = commands.add_parser(
+        "freeze-draft", help="fill explicit draft digest placeholders and validate a new no-clobber case"
+    )
+    freeze.add_argument("draft_root", type=Path, help="directory containing draft.json and declared source files")
+    freeze.add_argument("destination", type=Path, help="new directory outside the draft; parent must already exist")
     classify = commands.add_parser("classify", help="execute digest-bound classifiers on frozen inputs")
     classify.add_argument("case_root", type=Path)
     receipts = commands.add_parser("preflight-receipts", help="bind receipt bytes; historical scoring stays disabled")
@@ -567,6 +573,8 @@ def main(argv: Optional[list] = None) -> int:
             return {"READY_FOR_LOCAL_VERIFICATION": 0, "BLOCKED": 2, "INCOMPLETE": 3}[output["status"]]
         elif args.command == "analyze":
             output = compile_case(load_case(args.case_root))
+        elif args.command == "freeze-draft":
+            output = freeze_draft(args.draft_root, args.destination)
         elif args.command == "classify":
             case = load_case(args.case_root)
             output = execute_classifiers(case, args.case_root.resolve(strict=True))

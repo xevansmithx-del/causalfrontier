@@ -4,6 +4,9 @@ All notable changes to CausalFrontier are documented here.
 
 ## Unreleased
 
+- Add `freeze-draft` and a worked authoring guide. Explicit draft digest
+  placeholders become a new validated case without changing authored dates,
+  inferring scientific declarations, overwriting inputs, or enabling scoring.
 - Add opt-in, path-free runtime-exception diagnostics using numeric OS errors
   and distinct file, inventory, race, and subprocess reason codes. Existing
   successful protocol output and default error text remain unchanged.

@@ -122,7 +122,7 @@ def validate_classifier(
     if not isinstance(rule, dict) or "kind" not in rule:
         raise CausalFrontierError("classifier rule must be an object with a registered kind")
     kind = rule["kind"]
-    if kind not in RULE_KINDS:
+    if not isinstance(kind, str) or kind not in RULE_KINDS:
         raise CausalFrontierError("unsupported classifier rule kind")
     common = {
         "kind",

@@ -20,6 +20,7 @@ It does **not** discover a drug, infer a causal effect, validate a biological me
 
 ## Start here
 
+- **Case authors:** [draft, freeze, analyze, and replay a case](docs/case-authoring.md)
 - **New users:** [source-tree reproduction pilot](docs/independent-reproduction.md)
 - **Environment troubleshooting:** [local prerequisite and runtime diagnostics](docs/diagnostics.md)
 - **Reviewers:** [validation record](VALIDATION.md) and [exact source manifest](SOURCE_SHA256SUMS.txt)

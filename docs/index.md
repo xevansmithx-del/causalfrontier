@@ -6,6 +6,8 @@ answers your question.
 
 ## Use and reproduce
 
+- [Author a case](case-authoring.md) — edit explicit declarations, freeze their
+  digests into a new case, and complete the synthetic workflow.
 - [Source-tree reproduction pilot](independent-reproduction.md) — sync, run, and
   report one public/synthetic workflow.
 - [Local diagnostics](diagnostics.md) — check development-source prerequisites
