@@ -488,8 +488,12 @@ def _opening_card(case_key: str, case_id: str) -> dict[str, Any]:
     }
 
 
-def _toolbox_contract(repository: Path) -> list[dict[str, str]]:
-    causalfrontier_module = repository / "src" / "causalfrontier" / "calibration_v2.py"
+def _toolbox_contract() -> list[dict[str, str]]:
+    # Bind the module actually executing the protocol, including when this
+    # script is run against an installed package instead of an editable tree.
+    # The legacy protocol field is named source_tree_sha256; this declaration
+    # has always covered calibration_v2.py alone, not a complete source tree.
+    causalfrontier_module = Path(v2.__file__).resolve(strict=True)
     entries = [
         {
             "stage_id": stage_id,
@@ -709,13 +713,19 @@ def _votes() -> list[dict[str, Any]]:
 
 
 def generate(output: Path) -> dict[str, Any]:
-    """Write and replay the exact example tree at ``output``."""
+    """Generate a deterministic current-module rehearsal in a new directory.
 
+    Historical artifacts remain immutable. A changed module digest propagates
+    through the declared toolbox trace and all dependent protocol commitments.
+    """
+
+    if output.is_symlink():
+        raise ValueError("output must be a new directory; historical snapshots are never overwritten")
     output = output.resolve()
-    repository = Path(__file__).resolve().parents[2]
+    output.mkdir(parents=True, exist_ok=False)
     entrant_root = output / "entrant-root"
     external = output / "external-zones"
-    toolbox_contract = _toolbox_contract(repository)
+    toolbox_contract = _toolbox_contract()
 
     case_rows = []
     for case_key, definition in CASE_DEFINITIONS.items():
@@ -1007,8 +1017,8 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path(__file__).resolve().parent,
-        help="directory in which to generate the example",
+        required=True,
+        help="new directory for a rehearsal bound to the executing module; existing directories are refused",
     )
     args = parser.parse_args()
     checkpoints = generate(args.output)

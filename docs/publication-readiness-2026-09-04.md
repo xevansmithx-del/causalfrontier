@@ -1,5 +1,9 @@
 # Publication-readiness assessment — 2026-09-04
 
+**Policy clarification:** 2026-09-05 UTC. The engineering and adoption evidence
+below retains the original assessment's scope. This clarification adds no new
+scientific result, external reproduction, or journal submission.
+
 ## Decision
 
 CausalFrontier is **not submission-ready** as a research-software paper or a
@@ -39,15 +43,29 @@ adoption record.
 
 ## Venue gates
 
-The policies below were accessed on 2026-09-04. Journal policies can change and
-must be rechecked before submission.
+The policies below were reviewed on 2026-09-04 and rechecked during the
+2026-09-05 UTC clarification. Journal policies can change and must be rechecked
+before submission.
 
 | Venue | Relevant current gate | Verdict now |
 |---|---|---|
 | [Journal of Open Source Software](https://joss.readthedocs.io/en/latest/submitting.html) | Feature-complete research software, demonstrated research use, good open-source practice, and more than six months of active public development; the [paper format](https://joss.readthedocs.io/en/latest/paper.html) also requires sections on the need, field, design, impact, and AI use | **No-go.** Public history is about one week, the software is pre-alpha, demonstrated research use is absent, and no paper exists. Under the current JOSS workflow, a tagged archive and DOI are acceptance-stage deliverables, not today's pre-review blocker. A conservative earliest time-gate date is 2027-03-01, contingent on active public development and demonstrated use—not merely waiting. |
 | [Nature Methods](https://www.nature.com/nmeth/submission-guidelines/about/aims) | Novel methods with immediate practical relevance and potential to advance biological applications; central code must satisfy the journal's [software and code guidance](https://www.nature.com/documents/GuidelinesCodePublication.pdf) | **No-go.** No real biological application, documented testing by colleagues unfamiliar with the tool, state-of-the-art performance comparison, or generalizability evidence exists. |
-| [PLOS Computational Biology](https://journals.plos.org/ploscompbiol/s/journal-information) Software article | Outstanding software of broad utility that can provide new biological insight, with reproducible code/data and the [required software sharing](https://journals.plos.org/ploscompbiol/s/materials-and-software-sharing) | **No-go.** No real-world biological insight, broad-utility evidence, or independent adoption is established. Wet-lab validation is not categorically required, but qualifying real-world evidence is. |
-| [Bioinformatics](https://academic.oup.com/bioinformatics/pages/author-guidelines) Application Note or Original Paper | Application Notes require nontrivial software, clear availability and implementation, broad-machine usability, and a two-year availability commitment; Original Papers generally require actual biological data, with relevant state-of-the-art comparisons | **No-go for either route.** No realistic validated use or relevant empirical comparator exists; the Application Note two-year availability commitment and Original Paper biological dataset are also absent. |
+| [PLOS Computational Biology](https://journals.plos.org/ploscompbiol/s/submission-guidelines) Software article | Broad utility and a significant advance providing biological insight, plus wide adoption or credible promise of it; the [sharing policy](https://journals.plos.org/ploscompbiol/s/materials-and-software-sharing) requires a well-established project with an open repository available for an extended period | **No-go.** Biological insight, broad utility, adoption promise, and sufficient development history remain unestablished. Deposit source, license, documentation, test data, and parameters for reproducible review; the exact submission version must be supplied as supporting information and linked. Wet-lab validation and a DOI are not categorical requirements of this route. |
+| [Bioinformatics](https://academic.oup.com/bioinformatics/pages/author-guidelines) Application Note or Original Paper | Original Papers require actual biological data except extremely well-justified simulation-only cases. Application Notes require anonymous stable review access, exact software/test-data archival, two-year availability, broad machine compatibility, and low installation burden | **No-go for either route.** Realistic validated use and relevant empirical comparisons are absent. The Application Note availability commitment and the Original Paper biological-data requirement remain open. Article type and subject category determine the applicable comparison and availability rules. |
+
+The [AI-use record](../AI_USAGE.md) leaves accountable-human review pending.
+JOSS requires disclosure of systems, versions, and scope, plus human confirmation
+of review, editing, validation, and core design decisions. Its author
+conversations with editors and reviewers exclude AI assistance except
+translation. See the [JOSS policy](https://joss.readthedocs.io/en/latest/submitting.html#ai-usage-policy).
+
+Bioinformatics permits accountable code and documentation assistance but bars
+prompt-generated manuscript text, figures, tables, and references: researchers
+must write the paper. Permitted use still needs detailed disclosure under the
+[author guidelines](https://academic.oup.com/BIOINFORMATICS/pages/author-guidelines).
+The present planning document is not a manuscript or an attestation that these
+requirements have been met.
 
 ## Evidence-first publication ladder
 
@@ -71,12 +89,19 @@ Advance only when the prior rung is independently checkable.
 5. **Prospective validation.** Commit the evidence cutoff, actions, branches,
    scoring, and custody before outcome access; then obtain independent reveal
    and adjudication. Historical replays remain calibration-only.
-6. **Stable release and archive.** Align source and package versions, document a
-   support window, create a reviewed release, and archive the exact release with
-   a DOI.
-7. **Venue-specific paper.** Add verified author affiliations, contributions,
-   competing interests, funding, data/code availability, references, and a
-   complete AI-use disclosure. Submit only the claims supported by rungs 1–6.
+6. **Human review and venue-specific paper.** Accountable human authors review
+   and validate the code, evidence, and claims; document their core design
+   decisions; and supply verified affiliations, contributions, competing
+   interests, funding, availability statements, references, and AI disclosures.
+   For Bioinformatics, researchers must write the manuscript. Follow the
+   [human correspondence gate](dynamic-workflow.md#journal-correspondence-gate)
+   for JOSS. Submit only claims supported by the completed evidence steps.
+7. **Venue-specific release identity.** Align source and package versions and
+   document the support window. For JOSS, submit the feature-complete candidate
+   and paper first, then tag and archive the exact reviewed revision with a DOI
+   after successful review. Other venues may require an exact archive at
+   submission; follow their sequence. Independently reproduce the exact release
+   before claiming release reproduction or scientific performance.
 
 ## Go, pivot, or stop
 

@@ -26,6 +26,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_exact_keys,
     require_id,
@@ -494,7 +495,11 @@ def _validate_inventory(
     for relative in inventory - roots:
         matches = [prefix for prefix in prefixes if _under(relative, prefix)]
         if len(matches) != 1:
-            raise CausalFrontierError("dual-witness inventory contains an orphan or ambiguous artifact")
+            raise CausalFrontierError(
+                "dual-witness inventory contains an orphan or ambiguous artifact",
+                reason_code="INVENTORY_MISMATCH",
+                operation="sentinel_witness._validate_inventory",
+            )
         counts[matches[0]] += 1
     if any(count == 0 for count in counts.values()):
         raise CausalFrontierError("dual-witness evidence subtree is empty")
@@ -680,16 +685,32 @@ def preflight_sentinel_dual_witness_lock(
                     raise CausalFrontierError("dual-witness replay reuses %s" % field)
 
             if receipt_io._inventory(descriptor) != inventory:
-                raise CausalFrontierError("dual-witness bundle inventory changed during replay")
+                raise CausalFrontierError(
+                    "dual-witness bundle inventory changed during replay",
+                    reason_code="INPUT_CHANGED",
+                    operation="sentinel_witness.preflight_sentinel_dual_witness_lock",
+                )
             for relative, raw in snapshots.items():
                 if receipt_io._snapshot(descriptor, relative) != raw:
-                    raise CausalFrontierError("dual-witness bundle changed during replay")
-    except OSError:
-        raise CausalFrontierError("dual-witness bundle cannot be read safely") from None
+                    raise CausalFrontierError(
+                        "dual-witness bundle changed during replay",
+                        reason_code="INPUT_CHANGED",
+                        operation="sentinel_witness.preflight_sentinel_dual_witness_lock",
+                    )
+    except OSError as exc:
+        raise io_error(
+            exc,
+            "dual-witness bundle cannot be read safely",
+            operation="sentinel_witness.preflight_sentinel_dual_witness_lock",
+        ) from None
 
     second_plan = sentinel.preflight_sentinel_generation_plan(generation_plan_path, expected_generation_plan_sha256)
     if canonical_bytes(second_plan) != canonical_bytes(generation_plan):
-        raise CausalFrontierError("sentinel generation plan changed during dual-witness replay")
+        raise CausalFrontierError(
+            "sentinel generation plan changed during dual-witness replay",
+            reason_code="INPUT_CHANGED",
+            operation="sentinel_witness.preflight_sentinel_dual_witness_lock",
+        )
 
     witness_projections = []
     epoch_witnesses = []

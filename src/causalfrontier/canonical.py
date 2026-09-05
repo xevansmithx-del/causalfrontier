@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import errno as errno_codes
 import hashlib
 import json
 import os
@@ -23,7 +24,45 @@ FORBIDDEN_TEXT = (
 
 
 class CausalFrontierError(ValueError):
-    """A fail-closed validation or replay error."""
+    """A fail-closed error with optional, path-free diagnostic metadata.
+
+    The human-readable message and ValueError compatibility are preserved.
+    Diagnostics describe an observed software failure, never scientific truth.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        reason_code: str = "VALIDATION_REJECTED",
+        operation: str | None = None,
+        errno: int | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.reason_code = reason_code
+        self.operation = operation
+        self.errno = errno
+
+    def diagnostic(self) -> dict[str, str | int | None]:
+        """Exclude message, exception text, filenames, and subprocess output."""
+        return {"reason_code": self.reason_code, "operation": self.operation, "errno": self.errno}
+
+
+def io_error(exc: OSError, message: str, *, operation: str) -> CausalFrontierError:
+    """Classify numeric OS evidence without guessing from message strings.
+
+    A safe-path rejection does not establish malicious input. Missing input
+    and access denial do not establish absence of scientific evidence.
+    """
+    if exc.errno in {errno_codes.EACCES, errno_codes.EPERM}:
+        reason_code = "ENVIRONMENT_DENIED"
+    elif exc.errno == errno_codes.ENOENT:
+        reason_code = "INPUT_MISSING"
+    elif exc.errno in {errno_codes.ELOOP, errno_codes.ENOTDIR}:
+        reason_code = "SAFE_PATH_REJECTED"
+    else:
+        reason_code = "IO_FAILURE"
+    return CausalFrontierError(message, reason_code=reason_code, operation=operation, errno=exc.errno)
 
 
 def canonical_bytes(value: Any) -> bytes:
@@ -52,7 +91,7 @@ def sha256_file(path: Path) -> str:
             for chunk in iter(lambda: handle.read(1024 * 1024), b""):
                 digest.update(chunk)
     except OSError as exc:
-        raise CausalFrontierError("cannot hash %s: %s" % (path.name, exc)) from exc
+        raise io_error(exc, "cannot hash %s: %s" % (path.name, exc), operation="hash_file") from exc
     return digest.hexdigest()
 
 
@@ -105,7 +144,7 @@ def read_json(path: Path) -> Any:
                 raise CausalFrontierError("%s exceeds %d bytes" % (path.name, MAX_JSON_BYTES))
             raw = handle.read(MAX_JSON_BYTES + 1)
     except OSError as exc:
-        raise CausalFrontierError("cannot read %s: %s" % (path.name, exc)) from exc
+        raise io_error(exc, "cannot read %s: %s" % (path.name, exc), operation="read_json") from exc
     return read_json_bytes(raw, path.name)
 
 
@@ -195,20 +234,38 @@ def contained_file(root: Path, relative_value: Any, field: str) -> Path:
         raise CausalFrontierError("%s must be a nonempty relative path" % field)
     relative = Path(relative_value)
     if relative.is_absolute() or ".." in relative.parts or relative == Path("."):
-        raise CausalFrontierError("%s must stay inside the case root" % field)
+        raise CausalFrontierError(
+            "%s must stay inside the case root" % field,
+            reason_code="SAFE_PATH_REJECTED",
+            operation="canonical.contained_file",
+        )
     if root.is_symlink():
-        raise CausalFrontierError("case root must not be a symlink")
+        raise CausalFrontierError(
+            "case root must not be a symlink",
+            reason_code="SAFE_PATH_REJECTED",
+            operation="canonical.contained_file",
+        )
     resolved_root = root.resolve(strict=True)
     cursor = resolved_root
     for part in relative.parts:
         cursor = cursor / part
         if cursor.is_symlink():
-            raise CausalFrontierError("%s traverses a symlink" % field)
+            raise CausalFrontierError(
+                "%s traverses a symlink" % field,
+                reason_code="SAFE_PATH_REJECTED",
+                operation="canonical.contained_file",
+            )
     try:
         target = (resolved_root / relative).resolve(strict=True)
         target.relative_to(resolved_root)
-    except (OSError, ValueError) as exc:
+    except OSError as exc:
+        raise io_error(exc, "%s does not resolve inside the case root" % field, operation="contained_file") from exc
+    except ValueError as exc:
         raise CausalFrontierError("%s does not resolve inside the case root" % field) from exc
     if not target.is_file() or target.is_symlink() or target.stat().st_nlink != 1:
-        raise CausalFrontierError("%s must resolve to a single-link regular file" % field)
+        raise CausalFrontierError(
+            "%s must resolve to a single-link regular file" % field,
+            reason_code="SAFE_FILE_REJECTED",
+            operation="canonical.contained_file",
+        )
     return target

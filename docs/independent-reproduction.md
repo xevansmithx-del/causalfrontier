@@ -82,7 +82,13 @@ cf_sha256_check() {
 }
 cf_select_guide_ref() {
   if [ -n "${CAUSALFRONTIER_GUIDE_REF:-}" ]; then
-    git checkout --detach "$CAUSALFRONTIER_GUIDE_REF"
+    case "$CAUSALFRONTIER_GUIDE_REF" in
+      *[!0-9a-f]*|'') return 2 ;;
+    esac
+    [ "${#CAUSALFRONTIER_GUIDE_REF}" -eq 40 ] || return 2
+    guide_resolved=$(git rev-parse --verify "$CAUSALFRONTIER_GUIDE_REF^{commit}") || return 2
+    [ "$guide_resolved" = "$CAUSALFRONTIER_GUIDE_REF" ] || return 2
+    git checkout --detach "$guide_resolved"
   else
     :
   fi

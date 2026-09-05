@@ -19,6 +19,7 @@ from urllib.parse import urlsplit
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     reject_private_material,
     require_enum,
@@ -114,13 +115,21 @@ def _relative(value: Any) -> str:
         raise CausalFrontierError("invalid receipt file path")
     parts = value.split("/")
     if len(parts) > 8 or any(part in {".", ".."} or COMPONENT.fullmatch(part) is None for part in parts):
-        raise CausalFrontierError("receipt paths must be canonical relative paths")
+        raise CausalFrontierError(
+            "receipt paths must be canonical relative paths",
+            reason_code="SAFE_PATH_REJECTED",
+            operation="receipts._relative",
+        )
     return value
 
 
 def _open_directory(stack: ExitStack, name: str, parent: int | None = None) -> int:
     if not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY"):
-        raise CausalFrontierError("receipt preflight requires no-follow directory descriptors")
+        raise CausalFrontierError(
+            "receipt preflight requires no-follow directory descriptors",
+            reason_code="ENVIRONMENT_UNSUPPORTED",
+            operation="receipts._open_directory",
+        )
     descriptor = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
     stack.callback(os.close, descriptor)
     return descriptor
@@ -128,7 +137,11 @@ def _open_directory(stack: ExitStack, name: str, parent: int | None = None) -> i
 
 def _root_descriptor(stack: ExitStack, root: Path) -> int:
     if ".." in root.parts:
-        raise CausalFrontierError("receipt root must not contain parent traversal")
+        raise CausalFrontierError(
+            "receipt root must not contain parent traversal",
+            reason_code="SAFE_PATH_REJECTED",
+            operation="receipts._root_descriptor",
+        )
     absolute = root.absolute()
     descriptor = _open_directory(stack, absolute.anchor)
     for component in absolute.parts[1:]:
@@ -147,7 +160,11 @@ def _snapshot(root_fd: int, relative: str) -> bytes:
         stack.callback(os.close, descriptor)
         before = os.fstat(descriptor)
         if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_size > MAX_FILE_BYTES:
-            raise CausalFrontierError("receipt payload must be a bounded single-link regular file")
+            raise CausalFrontierError(
+                "receipt payload must be a bounded single-link regular file",
+                reason_code="SAFE_FILE_REJECTED",
+                operation="receipts._snapshot",
+            )
         chunks = []
         remaining = MAX_FILE_BYTES + 1
         while remaining:
@@ -164,7 +181,11 @@ def _snapshot(root_fd: int, relative: str) -> bytes:
             or (before.st_size, before.st_mtime_ns, before.st_ctime_ns, before.st_nlink)
             != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_nlink)
         ):
-            raise CausalFrontierError("receipt payload changed while being read")
+            raise CausalFrontierError(
+                "receipt payload changed while being read",
+                reason_code="INPUT_CHANGED",
+                operation="receipts._snapshot",
+            )
     return raw
 
 
@@ -189,11 +210,19 @@ def _inventory(
                 before = len(entries)
                 _inventory(child, relative + "/", entries, visited)
                 if len(entries) == before:
-                    raise CausalFrontierError("receipt inventory contains an empty directory")
+                    raise CausalFrontierError(
+                        "receipt inventory contains an empty directory",
+                        reason_code="INVENTORY_MISMATCH",
+                        operation="receipts._inventory",
+                    )
         elif stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
             entries.add(relative)
         else:
-            raise CausalFrontierError("receipt inventory contains an unsafe filesystem object")
+            raise CausalFrontierError(
+                "receipt inventory contains an unsafe filesystem object",
+                reason_code="SAFE_FILE_REJECTED",
+                operation="receipts._inventory",
+            )
     return entries
 
 
@@ -405,7 +434,11 @@ def preflight_receipts(root: Path, expected_set_sha256: str) -> dict:
                 raise CausalFrontierError("duplicate receipt id")
             expected_files = {MANIFEST, *bindings}
             if _inventory(descriptor) != expected_files:
-                raise CausalFrontierError("receipt file inventory differs")
+                raise CausalFrontierError(
+                    "receipt file inventory differs",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="receipts.preflight_receipts",
+                )
             total_size = len(raw_set)
             for relative, digest in sorted(bindings.items()):
                 raw = _snapshot(descriptor, relative)
@@ -416,9 +449,15 @@ def preflight_receipts(root: Path, expected_set_sha256: str) -> dict:
                     raise CausalFrontierError("receipt payload digest mismatch")
                 _screen(raw)
             if _inventory(descriptor) != expected_files:
-                raise CausalFrontierError("receipt inventory changed during preflight")
-    except OSError:
-        raise CausalFrontierError("receipt filesystem cannot be read safely") from None
+                raise CausalFrontierError(
+                    "receipt inventory changed during preflight",
+                    reason_code="INPUT_CHANGED",
+                    operation="receipts.preflight_receipts",
+                )
+    except OSError as exc:
+        raise io_error(
+            exc, "receipt filesystem cannot be read safely", operation="receipts.preflight_receipts"
+        ) from None
     results = []
     for item in sorted(receipts, key=lambda value: value["id"]):
         reasons = [

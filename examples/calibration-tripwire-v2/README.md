@@ -28,11 +28,30 @@ reconstruction. Its date is a declared ordering field, not independent custody o
 - `checkpoints.json` — exact local raw-byte hashes. It is not an independent timestamp or rollback witness.
 - `generate_example.py` — deterministic, offline generator and verifier.
 
-Regenerate from the repository root:
+The checked-in artifacts are an immutable historical source snapshot. The
+checkpoint file SHA-256 is
+`93e4899a853383d365ce8a0cc0770f5f53be7bcb29f5cab7cbf6c31d6708a050`,
+and the declared CausalFrontier module SHA-256 is
+`365a377f5e02e5ef66f0f7c93d11329de48aada20df982d20af93d19760b95dc`.
+The protocol field `source_tree_sha256` in that toolbox stage covers
+`calibration_v2.py` alone; it is not a digest of the complete package.
+
+Generate a current-source rehearsal in a new directory from the repository root:
 
 ```bash
-.venv/bin/python examples/calibration-tripwire-v2/generate_example.py
+.venv/bin/python examples/calibration-tripwire-v2/generate_example.py \
+  --output /tmp/causalfrontier-v2-new-rehearsal
 ```
+
+The output directory must not already exist. The generator binds the module
+actually imported by its Python environment. When those source bytes change,
+the toolbox declaration and dependent protocol commitments also change, even
+when the decisions and claim boundaries stay identical. This is a new local
+rehearsal, not regeneration of the historical checkpoint. The tests separately
+replay the historical files, compare two current-source generations across hash
+seeds with Python socket calls disabled, and compare every report field except
+the seven explicit source-dependent commitment fields. Neither run establishes
+prospective timing, independent custody, or scientific validation.
 
 Replay the focused test:
 

@@ -17,6 +17,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_enum,
     require_exact_keys,
@@ -64,8 +65,10 @@ def _read_checkpointed_opening(path: Path, expected_sha256: str) -> tuple[bytes,
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("reveal opening cannot be read safely") from None
+    except OSError as exc:
+        raise io_error(
+            exc, "reveal opening cannot be read safely", operation="reveal._read_checkpointed_opening"
+        ) from None
     if sha256_bytes(raw) != expected_sha256:
         raise CausalFrontierError("external reveal-opening checkpoint mismatch")
     receipt_io._screen(raw)

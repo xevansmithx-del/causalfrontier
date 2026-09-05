@@ -24,12 +24,13 @@ from .calibration_v2 import (
     seal_calibration_v2_submission,
     verify_calibration_v2_report,
 )
-from .canonical import CausalFrontierError
+from .canonical import CausalFrontierError, io_error
 from .capsule import build_capsule, record_rehearsal, verify_capsule
 from .challenge import preflight_challenge
 from .claim import preflight_goal_claim_plan, verify_goal_claim_plan_preflight
 from .classifier import execute_classifiers
 from .comparators import lock_reference_selections
+from .doctor import diagnose_environment
 from .frontier import compile_case, simulate_branch
 from .horse_race import (
     PLAN_STATUS,
@@ -79,7 +80,7 @@ def _read_checkpointed_seed(path: Path, expected_sha256: str) -> bytes:
         return read_checkpointed_blinding_nonce(path, expected_sha256)
     except CausalFrontierError as exc:
         message = str(exc).replace("blinding nonce", "neutral baseline seed")
-        raise CausalFrontierError(message) from None
+        raise CausalFrontierError(message, **exc.diagnostic()) from None
 
 
 def parser() -> argparse.ArgumentParser:
@@ -92,7 +93,16 @@ def parser() -> argparse.ArgumentParser:
         action="version",
         version=f"%(prog)s {DISTRIBUTION_VERSION}",
     )
+    result.add_argument(
+        "--error-format",
+        choices=("text", "json"),
+        default="text",
+        help="format runtime errors on stderr; JSON omits messages and paths",
+    )
     commands = result.add_subparsers(dest="command", required=True)
+    doctor = commands.add_parser("doctor", help="check local prerequisites without inspecting evidence")
+    doctor.add_argument("--openssl-binary", type=Path, help="trusted local OpenSSL executable to check")
+    doctor.add_argument("--expected-openssl-sha256", help="caller-preserved SHA-256 of the trusted executable")
     analyze = commands.add_parser("analyze", help="analyze a frozen case root")
     analyze.add_argument("case_root", type=Path)
     classify = commands.add_parser("classify", help="execute digest-bound classifiers on frozen inputs")
@@ -551,7 +561,11 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: Optional[list] = None) -> int:
     args = parser().parse_args(argv)
     try:
-        if args.command == "analyze":
+        if args.command == "doctor":
+            output = diagnose_environment(args.openssl_binary, args.expected_openssl_sha256)
+            _emit(output)
+            return {"READY_FOR_LOCAL_VERIFICATION": 0, "BLOCKED": 2, "INCOMPLETE": 3}[output["status"]]
+        elif args.command == "analyze":
             output = compile_case(load_case(args.case_root))
         elif args.command == "classify":
             case = load_case(args.case_root)
@@ -1007,7 +1021,18 @@ def main(argv: Optional[list] = None) -> int:
             return 2
         return 0
     except (CausalFrontierError, OSError, ValueError) as exc:
-        print("causalfrontier: %s" % exc, file=sys.stderr)
+        if args.error_format == "json":
+            if isinstance(exc, CausalFrontierError):
+                diagnostic = exc.diagnostic()
+            elif isinstance(exc, OSError):
+                diagnostic = io_error(exc, "command I/O failed", operation="command_io").diagnostic()
+            else:
+                diagnostic = CausalFrontierError("command rejected").diagnostic()
+            print(
+                json.dumps({"schema_version": "causalfrontier.error.v1", **diagnostic}, sort_keys=True), file=sys.stderr
+            )
+        else:
+            print("causalfrontier: %s" % exc, file=sys.stderr)
         return 2
 
 

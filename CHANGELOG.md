@@ -4,6 +4,20 @@ All notable changes to CausalFrontier are documented here.
 
 ## Unreleased
 
+- Add opt-in, path-free runtime-exception diagnostics using numeric OS errors
+  and distinct file, inventory, race, and subprocess reason codes. Existing
+  successful protocol output and default error text remain unchanged.
+- Add a bounded `doctor` prerequisite report. No executable is replayed by
+  default; replay requires a caller-selected trusted binary and its SHA-256.
+  The report explicitly leaves subprocess side effects unmonitored and makes
+  no scientific, release, or independent-reproduction claim.
+- Make the phase test's child interpreter import the exact source tree, enforce
+  full commit identities in the guide selector, and add a macOS CI job.
+- Preserve the frozen V2 example; distinguish historical replay from new
+  source-bound generation and require a fresh output directory for the latter.
+- Correct venue-specific publication and human AI-use requirements; add a
+  current-source diagnostics handoff separate from the older pinned pilot.
+
 - Correct the external source-tree pilot after hostile review: declare its
   OpenSSL 3.x and single-hard-link executable contract, identify Ubuntu as the
   only CI-verified operating system, provide bounded macOS and conda-family

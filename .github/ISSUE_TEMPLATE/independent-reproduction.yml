@@ -41,7 +41,7 @@ body:
     id: commands
     attributes:
       label: Commands run
-      description: Paste the exact commands, every exit status, and all named values from the guide's golden software-output contract.
+      description: Give commands, every exit status, and named values from the golden software-output contract. Replace private paths or sensitive arguments with labeled placeholders before posting; preserve the exact original privately and list every redaction. Do not post raw logs containing restricted material.
       render: shell
     validations:
       required: true

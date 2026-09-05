@@ -24,6 +24,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_enum,
     require_exact_keys,
@@ -161,8 +162,10 @@ def _read_checkpointed_json(path: Path, expected_sha256: str, label: str) -> tup
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("%s cannot be read safely" % label) from None
+    except OSError as exc:
+        raise io_error(
+            exc, "%s cannot be read safely" % label, operation="calibration._read_checkpointed_json"
+        ) from None
     if not hmac.compare_digest(sha256_bytes(raw), checkpoint):
         raise CausalFrontierError("%s external checkpoint mismatch" % label)
     return raw, _strict_json(raw, label)
@@ -396,7 +399,11 @@ def _load_bundle(root: Path, expected_manifest_sha256: str) -> dict[str, Any]:
                 raise CausalFrontierError("calibration artifact paths contain a casefold collision")
             expected_files = {MANIFEST, *paths}
             if receipt_io._inventory(descriptor) != expected_files:
-                raise CausalFrontierError("calibration root file inventory differs")
+                raise CausalFrontierError(
+                    "calibration root file inventory differs",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="calibration._load_bundle",
+                )
 
             snapshots: dict[str, bytes] = {}
             parsed_outputs: dict[tuple[int, int], dict[str, Any]] = {}
@@ -430,14 +437,28 @@ def _load_bundle(root: Path, expected_manifest_sha256: str) -> dict[str, Any]:
                         POLICIES[policy_index],
                     )
             if receipt_io._inventory(descriptor) != expected_files:
-                raise CausalFrontierError("calibration root inventory changed while being read")
+                raise CausalFrontierError(
+                    "calibration root inventory changed while being read",
+                    reason_code="INPUT_CHANGED",
+                    operation="calibration._load_bundle",
+                )
             for path, original in sorted(snapshots.items()):
                 if receipt_io._snapshot(descriptor, path) != original:
-                    raise CausalFrontierError("calibration artifact changed during preflight")
+                    raise CausalFrontierError(
+                        "calibration artifact changed during preflight",
+                        reason_code="INPUT_CHANGED",
+                        operation="calibration._load_bundle",
+                    )
             if receipt_io._snapshot(descriptor, MANIFEST) != raw_manifest:
-                raise CausalFrontierError("calibration manifest changed during preflight")
-    except OSError:
-        raise CausalFrontierError("calibration filesystem cannot be read safely") from None
+                raise CausalFrontierError(
+                    "calibration manifest changed during preflight",
+                    reason_code="INPUT_CHANGED",
+                    operation="calibration._load_bundle",
+                )
+    except OSError as exc:
+        raise io_error(
+            exc, "calibration filesystem cannot be read safely", operation="calibration._load_bundle"
+        ) from None
 
     bound_controls = []
     for control_index, control in enumerate(controls):
@@ -844,5 +865,9 @@ def evaluate_calibration_tripwire(
         or raw_opening != second_opening_raw
         or canonical_bytes(opening_value) != canonical_bytes(second_opening_value)
     ):
-        raise CausalFrontierError("calibration inputs changed during deterministic report replay")
+        raise CausalFrontierError(
+            "calibration inputs changed during deterministic report replay",
+            reason_code="INPUT_CHANGED",
+            operation="calibration.evaluate_calibration_tripwire",
+        )
     return report

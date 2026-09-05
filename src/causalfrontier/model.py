@@ -11,6 +11,7 @@ from .canonical import (
     CausalFrontierError,
     canonical_bytes,
     contained_file,
+    io_error,
     read_json,
     reject_private_material,
     require_enum,
@@ -236,7 +237,13 @@ def _validate_provenance(
                 raise CausalFrontierError("source %s digest mismatch" % source["id"])
             try:
                 text = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeError) as exc:
+            except OSError as exc:
+                raise io_error(
+                    exc,
+                    "source %s must be UTF-8 text: %s" % (source["id"], exc),
+                    operation="model.read_source",
+                ) from exc
+            except UnicodeError as exc:
                 raise CausalFrontierError("source %s must be UTF-8 text: %s" % (source["id"], exc)) from exc
             reject_private_material(text, "source %s" % source["id"])
     if root is not None:
@@ -567,7 +574,11 @@ def load_case(root: Path) -> Dict[str, Any]:
     """Load case.json and verify every declared source against the exact root inventory."""
 
     if root.is_symlink():
-        raise CausalFrontierError("case root must not be a symlink")
+        raise CausalFrontierError(
+            "case root must not be a symlink",
+            reason_code="SAFE_PATH_REJECTED",
+            operation="model.load_case",
+        )
     root = root.resolve(strict=True)
     if not root.is_dir():
         raise CausalFrontierError("case root must be a directory")

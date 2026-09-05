@@ -14,6 +14,17 @@ from causalfrontier.model import FIXED_PARAMETER
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 EXAMPLE = REPOSITORY / "examples" / "calibration-tripwire-v2"
+HISTORICAL_CHECKPOINT_SHA256 = "93e4899a853383d365ce8a0cc0770f5f53be7bcb29f5cab7cbf6c31d6708a050"
+HISTORICAL_MODULE_SHA256 = "365a377f5e02e5ef66f0f7c93d11329de48aada20df982d20af93d19760b95dc"
+REPORT_IDENTITY_FIELDS = {
+    "adjudication_raw_sha256",
+    "opening_raw_sha256",
+    "report_sha256",
+    "rubric_raw_sha256",
+    "submission_raw_sha256",
+    "submission_seal_sha256",
+    "view_lock_sha256",
+}
 
 
 def _load(path: Path) -> dict:
@@ -44,6 +55,7 @@ def _verify(example: Path) -> dict:
 
 
 def test_checked_in_v2_public_metadata_example_replays_without_promoting_a_claim() -> None:
+    assert sha256_bytes((EXAMPLE / "checkpoints.json").read_bytes()) == HISTORICAL_CHECKPOINT_SHA256
     checkpoints = _load(EXAMPLE / "checkpoints.json")
     assert checkpoints["fixed_parameter"] == FIXED_PARAMETER
     assert checkpoints["status"] == "LOCAL_EXAMPLE_CHECKPOINT_NOT_INDEPENDENT_CUSTODY"
@@ -84,6 +96,10 @@ def test_checked_in_v2_public_metadata_example_replays_without_promoting_a_claim
     assert report["acceleration_ratio"] is None
 
     manifest = _load(EXAMPLE / "entrant-root" / v2.VIEW_MANIFEST)
+    historical_stage = next(
+        stage for stage in manifest["toolbox_contract"] if stage["stage_id"] == "CAUSALFRONTIER_STRUCTURED_ACTION"
+    )
+    assert historical_stage["source_tree_sha256"] == HISTORICAL_MODULE_SHA256
     rendered_manifest = canonical_bytes(manifest)
     assert b"POSITIVE" not in rendered_manifest
     assert b"FAILED_TRANSLATION" not in rendered_manifest
@@ -121,23 +137,119 @@ def test_checked_in_v2_public_metadata_example_replays_without_promoting_a_claim
         assert card["wet_lab_or_material_authority"] is False
 
 
-def test_v2_example_generator_is_offline_and_byte_deterministic(tmp_path: Path) -> None:
-    generated = tmp_path / "generated-example"
-    completed = subprocess.run(
-        [sys.executable, str(EXAMPLE / "generate_example.py"), "--output", str(generated)],
+def _run_generator(output: Path | None, seed: str = "77") -> subprocess.CompletedProcess[bytes]:
+    # The child does not inherit pytest-socket's monkeypatch. Disable Python
+    # socket entry points explicitly; this is not an OS network sandbox.
+    script = """
+import runpy
+import socket
+import sys
+
+def denied(*args, **kwargs):
+    raise RuntimeError("Python network access is disabled in the example test")
+
+socket.socket = denied
+socket.create_connection = denied
+socket.getaddrinfo = denied
+sys.argv = sys.argv[1:]
+runpy.run_path(sys.argv[0], run_name="__main__")
+"""
+    command = [sys.executable, "-c", script, str(EXAMPLE / "generate_example.py")]
+    if output is not None:
+        command.extend(["--output", str(output)])
+    source_path = os.pathsep.join(
+        filter(None, (str(Path(v2.__file__).resolve().parents[1]), os.environ.get("PYTHONPATH")))
+    )
+    return subprocess.run(
+        command,
         cwd=REPOSITORY,
-        env={**os.environ, "PYTHONHASHSEED": "77", "LC_ALL": "C", "LANG": "C", "TZ": "UTC"},
+        env={**os.environ, "PYTHONHASHSEED": seed, "PYTHONPATH": source_path, "LC_ALL": "C", "LANG": "C", "TZ": "UTC"},
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         timeout=120,
         check=False,
     )
-    assert completed.returncode == 0, completed.stderr.decode("utf-8", errors="replace")
-    generated_checkpoints = json.loads(completed.stdout)
-    assert canonical_bytes(generated_checkpoints) + b"\n" == (generated / "checkpoints.json").read_bytes()
+
+
+def test_v2_example_generator_is_offline_and_byte_deterministic(tmp_path: Path) -> None:
+    roots = [tmp_path / "generated-seed-1", tmp_path / "generated-seed-77"]
+    checkpoints = []
+    for output, seed in zip(roots, ("1", "77"), strict=True):
+        completed = _run_generator(output, seed)
+        assert completed.returncode == 0, completed.stderr.decode("utf-8", errors="replace")
+        generated_checkpoints = json.loads(completed.stdout)
+        assert canonical_bytes(generated_checkpoints) + b"\n" == (output / "checkpoints.json").read_bytes()
+        checkpoints.append(generated_checkpoints)
+    assert checkpoints[0] == checkpoints[1]
+    for artifact in checkpoints[0]["artifacts"]:
+        raw = (roots[0] / artifact["path"]).read_bytes()
+        assert sha256_bytes(raw) == artifact["sha256"]
+        assert raw == (roots[1] / artifact["path"]).read_bytes()
+
+    generated = roots[0]
+    current_module_sha256 = sha256_bytes(Path(v2.__file__).read_bytes())
+    manifest = _load(generated / "entrant-root" / v2.VIEW_MANIFEST)
+    generated_stage = next(
+        stage for stage in manifest["toolbox_contract"] if stage["stage_id"] == "CAUSALFRONTIER_STRUCTURED_ACTION"
+    )
+    assert generated_stage["source_tree_sha256"] == current_module_sha256
+    report = _verify(generated)
+    historical_report = _verify(EXAMPLE)
+    # Check every report field except the seven explicitly identity-bearing
+    # commitments. Decisions, gates, claim flags, rows, and schema stay exact.
+    assert {key: value for key, value in report.items() if key not in REPORT_IDENTITY_FIELDS} == {
+        key: value for key, value in historical_report.items() if key not in REPORT_IDENTITY_FIELDS
+    }
     checked_in = _load(EXAMPLE / "checkpoints.json")
-    assert generated_checkpoints == checked_in
-    for artifact in checked_in["artifacts"]:
-        assert (generated / artifact["path"]).read_bytes() == (EXAMPLE / artifact["path"]).read_bytes()
-    assert _verify(generated)["method_recovery_pass"] is False
+    historical_artifacts = {row["path"]: row["sha256"] for row in checked_in["artifacts"]}
+    generated_artifacts = {row["path"]: row["sha256"] for row in checkpoints[0]["artifacts"]}
+    assert generated_artifacts.keys() == historical_artifacts.keys()
+    if current_module_sha256 == HISTORICAL_MODULE_SHA256:
+        assert checkpoints[0] == checked_in
+    else:
+        assert checkpoints[0] != checked_in
+        assert report["report_sha256"] != historical_report["report_sha256"]
+        source_bound_paths = (
+            {"entrant-root/" + v2.VIEW_MANIFEST}
+            | {
+                "external-zones/" + name + ".json"
+                for name in (
+                    "adjudication",
+                    "opening",
+                    "report",
+                    "rubric",
+                    "submission-seal",
+                    "submission",
+                    "view-lock",
+                )
+            }
+            | {
+                path
+                for path in historical_artifacts
+                if path.startswith("toolbox/") and path.endswith("/04-causalfrontier-structured-action.artifact.json")
+            }
+        )
+        assert len(source_bound_paths) == 11
+        assert {
+            path for path, digest in generated_artifacts.items() if digest != historical_artifacts[path]
+        } == source_bound_paths
+    assert sha256_bytes((EXAMPLE / "checkpoints.json").read_bytes()) == HISTORICAL_CHECKPOINT_SHA256
+
+
+def test_v2_example_generator_refuses_existing_output_without_rewriting(tmp_path: Path) -> None:
+    destination = tmp_path / "preserved"
+    destination.mkdir()
+    marker = destination / "checkpoint.txt"
+    marker.write_bytes(b"historical bytes must stay intact\n")
+    completed = _run_generator(destination)
+    assert completed.returncode != 0
+    assert list(destination.iterdir()) == [marker]
+    assert marker.read_bytes() == b"historical bytes must stay intact\n"
+
+
+def test_v2_example_generator_requires_an_explicit_output() -> None:
+    completed = _run_generator(None)
+    assert completed.returncode == 2
+    assert b"--output" in completed.stderr
+    assert sha256_bytes((EXAMPLE / "checkpoints.json").read_bytes()) == HISTORICAL_CHECKPOINT_SHA256

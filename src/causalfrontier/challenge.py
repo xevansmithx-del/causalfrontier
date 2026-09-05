@@ -18,6 +18,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_enum,
     require_exact_keys,
@@ -375,7 +376,11 @@ def _bind_receipt_bundle(
         expected_paths.add(path)
     actual_paths = {path for path in artifact_paths if _under_prefix(path, prefix)}
     if actual_paths != expected_paths:
-        raise CausalFrontierError("receipt bundle inventory differs from its replay report")
+        raise CausalFrontierError(
+            "receipt bundle inventory differs from its replay report",
+            reason_code="INVENTORY_MISMATCH",
+            operation="challenge._bind_receipt_bundle",
+        )
     manifest_path = (PurePosixPath(prefix) / receipt_io.MANIFEST).as_posix()
     manifest_identity = artifact_paths.get(manifest_path)
     if manifest_identity is None:
@@ -499,7 +504,11 @@ def _bind_case_sources(
         expected_paths.add(path)
     actual_paths = {path for path in artifact_paths if _under_prefix(path, case_path.parent.as_posix())}
     if actual_paths != expected_paths:
-        raise CausalFrontierError("frozen case inventory differs from declared provenance")
+        raise CausalFrontierError(
+            "frozen case inventory differs from declared provenance",
+            reason_code="INVENTORY_MISMATCH",
+            operation="challenge._bind_case_sources",
+        )
     return frozen_case
 
 
@@ -515,16 +524,34 @@ def _verify_unchanged(
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, root)
             if receipt_io._snapshot(descriptor, MANIFEST) != raw_manifest:
-                raise CausalFrontierError("challenge manifest changed during preflight")
+                raise CausalFrontierError(
+                    "challenge manifest changed during preflight",
+                    reason_code="INPUT_CHANGED",
+                    operation="challenge._verify_unchanged",
+                )
             if receipt_io._inventory(descriptor) != expected_files:
-                raise CausalFrontierError("challenge inventory changed during preflight")
+                raise CausalFrontierError(
+                    "challenge inventory changed during preflight",
+                    reason_code="INPUT_CHANGED",
+                    operation="challenge._verify_unchanged",
+                )
             for path, identity in sorted(artifact_paths.items()):
                 if receipt_io._snapshot(descriptor, path) != raw_artifacts[identity]:
-                    raise CausalFrontierError("challenge artifact changed during preflight")
+                    raise CausalFrontierError(
+                        "challenge artifact changed during preflight",
+                        reason_code="INPUT_CHANGED",
+                        operation="challenge._verify_unchanged",
+                    )
                 if sha256_bytes(raw_artifacts[identity]) != artifacts[identity]["sha256"]:
-                    raise CausalFrontierError("challenge artifact digest changed during preflight")
-    except OSError:
-        raise CausalFrontierError("challenge filesystem cannot be reverified safely") from None
+                    raise CausalFrontierError(
+                        "challenge artifact digest changed during preflight",
+                        reason_code="INPUT_CHANGED",
+                        operation="challenge._verify_unchanged",
+                    )
+    except OSError as exc:
+        raise io_error(
+            exc, "challenge filesystem cannot be reverified safely", operation="challenge._verify_unchanged"
+        ) from None
 
 
 def _gate(identity: str, status: str, reason: str) -> dict[str, str]:
@@ -592,7 +619,11 @@ def preflight_challenge(root: Path, expected_manifest_sha256: str, expected_sequ
             artifacts, artifact_paths = _artifact_table(manifest["artifacts"])
             expected_files = {MANIFEST, *artifact_paths}
             if receipt_io._inventory(descriptor) != expected_files:
-                raise CausalFrontierError("challenge file inventory differs")
+                raise CausalFrontierError(
+                    "challenge file inventory differs",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="challenge.preflight_challenge",
+                )
             raw_artifacts: dict[str, bytes] = {}
             total_size = len(raw_manifest)
             for path, identity in sorted(artifact_paths.items()):
@@ -605,9 +636,15 @@ def preflight_challenge(root: Path, expected_manifest_sha256: str, expected_sequ
                 receipt_io._screen(raw)
                 raw_artifacts[identity] = raw
             if receipt_io._inventory(descriptor) != expected_files:
-                raise CausalFrontierError("challenge inventory changed during preflight")
-    except OSError:
-        raise CausalFrontierError("challenge filesystem cannot be read safely") from None
+                raise CausalFrontierError(
+                    "challenge inventory changed during preflight",
+                    reason_code="INPUT_CHANGED",
+                    operation="challenge.preflight_challenge",
+                )
+    except OSError as exc:
+        raise io_error(
+            exc, "challenge filesystem cannot be read safely", operation="challenge.preflight_challenge"
+        ) from None
 
     referenced: set[str] = set()
     cases = _bounded_list(manifest["cases"], "cases", 3, MAX_CASES)
@@ -916,9 +953,15 @@ def load_protocol_cases(
                         "case": frozen_case,
                     }
                 )
-    except OSError:
-        raise CausalFrontierError("challenge protocol cases cannot be read safely") from None
+    except OSError as exc:
+        raise io_error(
+            exc, "challenge protocol cases cannot be read safely", operation="challenge.load_protocol_cases"
+        ) from None
     after = preflight_challenge(root, expected_manifest_sha256, expected_sequence)
     if canonical_bytes(before) != canonical_bytes(after):
-        raise CausalFrontierError("challenge changed while protocol cases were loaded")
+        raise CausalFrontierError(
+            "challenge changed while protocol cases were loaded",
+            reason_code="INPUT_CHANGED",
+            operation="challenge.load_protocol_cases",
+        )
     return before, dict(sorted(by_case.items()))

@@ -334,6 +334,20 @@ It does not issue patient advice, execute an experiment, manipulate biological m
 
 ## Current milestones
 
+### Journal correspondence gate
+
+If a JOSS editor or reviewer requests author correspondence, pause that part of
+the dynamic workflow and hand it to accountable human authors. AI must not draft
+or conduct those conversations, except for translation, under the
+[JOSS AI policy](https://joss.readthedocs.io/en/latest/submitting.html#ai-usage-policy).
+Independent authorized software work can continue. Record the handoff without
+claiming human approval; resume correspondence only through the human authors.
+
+The [publication-readiness assessment](publication-readiness-2026-09-04.md)
+defines the venue-specific manuscript, disclosure, and release sequence.
+
+### Program milestones
+
 0. Bind the [goal-claim contract](goal-claim-contract-v1.md) before outcomes:
    every declared domain × independent expert/retrieval/graph/random/predeclared
    simple rule plus every pooled comparator must meet the tenfold lower-bound

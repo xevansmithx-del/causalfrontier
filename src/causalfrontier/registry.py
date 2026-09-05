@@ -1112,7 +1112,11 @@ def assess_registry_candidate(
         or canonical_bytes(first[2]) != canonical_bytes(second[2])
         or first[3] != second[3]
     ):
-        raise CausalFrontierError("registry inputs changed during assessment")
+        raise CausalFrontierError(
+            "registry inputs changed during assessment",
+            reason_code="INPUT_CHANGED",
+            operation="registry.assess_registry_candidate",
+        )
 
     core = {
         "schema_version": SCHEMA_VERSION,
