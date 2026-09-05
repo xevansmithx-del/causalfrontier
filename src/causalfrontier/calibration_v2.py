@@ -27,6 +27,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_enum,
     require_exact_keys,
@@ -367,8 +368,10 @@ def _read_checkpointed_json(path: Path, expected_sha256: str, label: str) -> tup
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("%s cannot be read safely" % label) from None
+    except OSError as exc:
+        raise io_error(
+            exc, "%s cannot be read safely" % label, operation="calibration_v2._read_checkpointed_json"
+        ) from None
     if not hmac.compare_digest(sha256_bytes(raw), checkpoint):
         raise CausalFrontierError("%s external checkpoint mismatch" % label)
     return raw, _strict_json(raw, label)
@@ -391,8 +394,12 @@ def _require_disjoint_external_zones(root: Path, paths: list[Path]) -> None:
             identities.add(identity)
     except CausalFrontierError:
         raise
-    except OSError:
-        raise CausalFrontierError("V2 artifact zones cannot be resolved safely") from None
+    except OSError as exc:
+        raise io_error(
+            exc,
+            "V2 artifact zones cannot be resolved safely",
+            operation="calibration_v2._require_disjoint_external_zones",
+        ) from None
 
 
 def _validate_axes(value: Any) -> None:
@@ -647,7 +654,11 @@ def _load_view(root: Path, expected_manifest_sha256: str) -> dict[str, Any]:
                 raise CausalFrontierError("V2 source paths contain a casefold collision")
             expected_files = {VIEW_MANIFEST, *paths}
             if receipt_io._inventory(descriptor) != expected_files:
-                raise CausalFrontierError("V2 entrant root inventory differs")
+                raise CausalFrontierError(
+                    "V2 entrant root inventory differs",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="calibration_v2._load_view",
+                )
             snapshots = {}
             total_bytes = len(raw_manifest)
             for path in paths:
@@ -661,14 +672,28 @@ def _load_view(root: Path, expected_manifest_sha256: str) -> dict[str, Any]:
                 parsed = _strict_json(raw, "V2 source")
                 _reject_hidden_source_keys(parsed, "V2 source")
             if receipt_io._inventory(descriptor) != expected_files:
-                raise CausalFrontierError("V2 entrant root changed while being read")
+                raise CausalFrontierError(
+                    "V2 entrant root changed while being read",
+                    reason_code="INPUT_CHANGED",
+                    operation="calibration_v2._load_view",
+                )
             if receipt_io._snapshot(descriptor, VIEW_MANIFEST) != raw_manifest:
-                raise CausalFrontierError("V2 view manifest changed during preflight")
+                raise CausalFrontierError(
+                    "V2 view manifest changed during preflight",
+                    reason_code="INPUT_CHANGED",
+                    operation="calibration_v2._load_view",
+                )
             for path, raw in snapshots.items():
                 if receipt_io._snapshot(descriptor, path) != raw:
-                    raise CausalFrontierError("V2 source changed during preflight")
-    except OSError:
-        raise CausalFrontierError("V2 entrant filesystem cannot be read safely") from None
+                    raise CausalFrontierError(
+                        "V2 source changed during preflight",
+                        reason_code="INPUT_CHANGED",
+                        operation="calibration_v2._load_view",
+                    )
+    except OSError as exc:
+        raise io_error(
+            exc, "V2 entrant filesystem cannot be read safely", operation="calibration_v2._load_view"
+        ) from None
 
     bound_controls = []
     for control in controls:

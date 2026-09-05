@@ -21,6 +21,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_enum,
     require_exact_keys,
@@ -449,8 +450,8 @@ def _read_checkpointed_plan(path: Path, expected_sha256: str) -> tuple[bytes, di
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("claim plan cannot be read safely") from None
+    except OSError as exc:
+        raise io_error(exc, "claim plan cannot be read safely", operation="claim._read_checkpointed_plan") from None
     if sha256_bytes(raw) != expected_sha256:
         raise CausalFrontierError("claim-plan external checkpoint mismatch")
     receipt_io._screen(raw)
@@ -1326,7 +1327,11 @@ def preflight_goal_claim_plan(path: Path, expected_plan_checkpoint_sha256: str) 
     domains, primary_cases, calibration_cases, all_laboratories = _validate_domains(plan["domains"])
     second_raw, second_value = _read_checkpointed_plan(path, expected_plan_checkpoint_sha256)
     if raw != second_raw or canonical_bytes(plan_value) != canonical_bytes(second_value):
-        raise CausalFrontierError("goal claim plan changed during preflight")
+        raise CausalFrontierError(
+            "goal claim plan changed during preflight",
+            reason_code="INPUT_CHANGED",
+            operation="claim.preflight_goal_claim_plan",
+        )
     gates = _expected_preflight_gates()
     core = {
         "schema_version": PREFLIGHT_SCHEMA_VERSION,

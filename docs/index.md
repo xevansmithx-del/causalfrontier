@@ -8,6 +8,8 @@ answers your question.
 
 - [Source-tree reproduction pilot](independent-reproduction.md) — sync, run, and
   report one public/synthetic workflow.
+- [Local diagnostics](diagnostics.md) — check development-source prerequisites
+  and interpret machine-readable runtime failures.
 - [Architecture](architecture.md) — system boundary, data flow, and design
   decisions.
 - [Validation](../VALIDATION.md) — exact tests, hostile cases, runtime coverage,
@@ -55,6 +57,8 @@ answers your question.
 - [Calibration V1](calibration-tripwire-v1.md) — preserved historical
   diagnostic.
 - [Calibration V1 source map](calibration-tripwire-source-map-v1.md)
+- [ToolUniverse probe](tooluniverse-probe.md) — historical biomedical retrieval
+  capability check and evidence-receipt requirements.
 
 ## Project policies
 

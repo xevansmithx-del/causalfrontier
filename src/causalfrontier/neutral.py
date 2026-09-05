@@ -27,6 +27,7 @@ from .canonical import (
     MAX_JSON_BYTES,
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_enum,
     require_exact_keys,
@@ -174,8 +175,8 @@ def _read_checkpointed_json(path: Path, expected_sha256: str, label: str) -> tup
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("%s cannot be read safely" % label) from None
+    except OSError as exc:
+        raise io_error(exc, "%s cannot be read safely" % label, operation="neutral._read_checkpointed_json") from None
     if sha256_bytes(raw) != expected_sha256:
         raise CausalFrontierError("%s external checkpoint mismatch" % label)
     receipt_io._screen(raw)

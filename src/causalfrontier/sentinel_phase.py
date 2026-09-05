@@ -26,6 +26,7 @@ from . import sentinel, sentinel_witness
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_exact_keys,
     require_id,
@@ -263,11 +264,19 @@ def _inventory(
                 child = receipt_io._open_directory(stack, name, root_fd)
                 _inventory(child, relative + "/", entries, visited)
             if len(entries) == before:
-                raise CausalFrontierError("phase-bound composition contains an empty directory")
+                raise CausalFrontierError(
+                    "phase-bound composition contains an empty directory",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="sentinel_phase._inventory",
+                )
         elif stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
             entries.add(relative)
         else:
-            raise CausalFrontierError("phase-bound composition contains an unsafe filesystem object")
+            raise CausalFrontierError(
+                "phase-bound composition contains an unsafe filesystem object",
+                reason_code="SAFE_FILE_REJECTED",
+                operation="sentinel_phase._inventory",
+            )
     return entries
 
 
@@ -297,7 +306,11 @@ def _snapshot_composition(
             lock_files = {path for path in inventory if _under(path, lock_root)}
             sentinel_files = {path for path in inventory if _under(path, sentinel_root)}
             if not lock_files or not sentinel_files or inventory != direct | lock_files | sentinel_files:
-                raise CausalFrontierError("phase-bound composition inventory is orphaned or incomplete")
+                raise CausalFrontierError(
+                    "phase-bound composition inventory is orphaned or incomplete",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="sentinel_phase._snapshot_composition",
+                )
             expected_lock_manifest = "%s/%s" % (lock_root, sentinel_witness.LOCK_MANIFEST)
             expected_sentinel_manifest = "%s/%s" % (sentinel_root, sentinel.MANIFEST)
             if expected_lock_manifest not in lock_files or expected_sentinel_manifest not in sentinel_files:
@@ -319,9 +332,15 @@ def _snapshot_composition(
             if sha256_bytes(snapshots[expected_sentinel_manifest]) != sentinel_manifest_sha256:
                 raise CausalFrontierError("phase-bound sentinel manifest bytes differ")
             if _inventory(descriptor) != inventory:
-                raise CausalFrontierError("phase-bound composition inventory changed while being read")
-    except OSError:
-        raise CausalFrontierError("phase-bound composition cannot be read safely") from None
+                raise CausalFrontierError(
+                    "phase-bound composition inventory changed while being read",
+                    reason_code="INPUT_CHANGED",
+                    operation="sentinel_phase._snapshot_composition",
+                )
+    except OSError as exc:
+        raise io_error(
+            exc, "phase-bound composition cannot be read safely", operation="sentinel_phase._snapshot_composition"
+        ) from None
     paths = (
         generation_plan_path,
         goal_plan_path,
@@ -454,18 +473,34 @@ def preflight_sentinel_phase_bound_admission(
             runtime_digests,
         )
         if canonical_bytes(phase1) != canonical_bytes(repeated_phase1):
-            raise CausalFrontierError("phase-1 witness replay changed during successor composition")
+            raise CausalFrontierError(
+                "phase-1 witness replay changed during successor composition",
+                reason_code="INPUT_CHANGED",
+                operation="sentinel_phase.preflight_sentinel_phase_bound_admission",
+            )
 
     try:
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, root)
             if _inventory(descriptor) != inventory:
-                raise CausalFrontierError("phase-bound composition inventory changed during replay")
+                raise CausalFrontierError(
+                    "phase-bound composition inventory changed during replay",
+                    reason_code="INPUT_CHANGED",
+                    operation="sentinel_phase.preflight_sentinel_phase_bound_admission",
+                )
             for relative, raw in snapshots.items():
                 if receipt_io._snapshot(descriptor, relative) != raw:
-                    raise CausalFrontierError("phase-bound composition bytes changed during replay")
-    except OSError:
-        raise CausalFrontierError("phase-bound composition cannot be reread safely") from None
+                    raise CausalFrontierError(
+                        "phase-bound composition bytes changed during replay",
+                        reason_code="INPUT_CHANGED",
+                        operation="sentinel_phase.preflight_sentinel_phase_bound_admission",
+                    )
+    except OSError as exc:
+        raise io_error(
+            exc,
+            "phase-bound composition cannot be reread safely",
+            operation="sentinel_phase.preflight_sentinel_phase_bound_admission",
+        ) from None
 
     gates = sorted(
         [

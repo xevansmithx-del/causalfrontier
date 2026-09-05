@@ -26,6 +26,7 @@ from .canonical import (
     MAX_JSON_BYTES,
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_enum,
     require_exact_keys,
@@ -166,8 +167,8 @@ def _read_checkpointed_json(path: Path, expected_sha256: str, label: str) -> tup
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("%s cannot be read safely" % label) from None
+    except OSError as exc:
+        raise io_error(exc, "%s cannot be read safely" % label, operation="blind._read_checkpointed_json") from None
     if sha256_bytes(raw) != expected_sha256:
         raise CausalFrontierError("%s external checkpoint mismatch" % label)
     receipt_io._screen(raw)
@@ -205,8 +206,10 @@ def read_checkpointed_blinding_nonce(path: Path, expected_sha256: str) -> bytes:
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("blinding nonce cannot be read safely") from None
+    except OSError as exc:
+        raise io_error(
+            exc, "blinding nonce cannot be read safely", operation="blind.read_checkpointed_blinding_nonce"
+        ) from None
     if sha256_bytes(raw) != expected_sha256:
         raise CausalFrontierError("blinding nonce external checkpoint mismatch")
     if len(raw) != 65 or raw[-1:] != b"\n" or any(byte not in b"0123456789abcdef" for byte in raw[:-1]):
@@ -319,7 +322,11 @@ def _validate_race_spec(
         or len(cases) != len(case_lanes)
         or any(not isinstance(item, dict) for item in cases)
     ):
-        raise CausalFrontierError("synthetic race case inventory differs from the challenge")
+        raise CausalFrontierError(
+            "synthetic race case inventory differs from the challenge",
+            reason_code="INVENTORY_MISMATCH",
+            operation="blind._validate_race_spec",
+        )
     normalized_cases = []
     seen_cases: set[str] = set()
     for case_value in cases:
@@ -336,7 +343,11 @@ def _validate_race_spec(
         action_ids = _experiment_ids(case_lanes[case_id], case_id)
         tariffs = case_spec["action_batch_tariffs"]
         if not isinstance(tariffs, list) or len(tariffs) != len(action_ids):
-            raise CausalFrontierError("synthetic race action tariff inventory is incomplete")
+            raise CausalFrontierError(
+                "synthetic race action tariff inventory is incomplete",
+                reason_code="INVENTORY_MISMATCH",
+                operation="blind._validate_race_spec",
+            )
         normalized_tariffs = []
         seen_actions: set[str] = set()
         for tariff_value in tariffs:
@@ -356,7 +367,11 @@ def _validate_race_spec(
             )
             normalized_tariffs.append({"experiment_id": experiment_id, "resources": resources})
         if seen_actions != set(action_ids):
-            raise CausalFrontierError("synthetic race action tariff inventory is incomplete")
+            raise CausalFrontierError(
+                "synthetic race action tariff inventory is incomplete",
+                reason_code="INVENTORY_MISMATCH",
+                operation="blind._validate_race_spec",
+            )
         tariff_by_action = {item["experiment_id"]: item["resources"] for item in normalized_tariffs}
         for lane in case_lanes[case_id]:
             analysis = compile_case(lane["case"])
@@ -379,7 +394,11 @@ def _validate_race_spec(
             }
         )
     if seen_cases != set(case_lanes):
-        raise CausalFrontierError("synthetic race case inventory is incomplete")
+        raise CausalFrontierError(
+            "synthetic race case inventory is incomplete",
+            reason_code="INVENTORY_MISMATCH",
+            operation="blind._validate_race_spec",
+        )
     return {
         **spec,
         "required_replicates": required_replicates,
@@ -1047,7 +1066,11 @@ def _strict_inventory(
                     raise CausalFrontierError("oracle inventory exceeds its total byte limit")
                 files.add(relative)
             else:
-                raise CausalFrontierError("oracle inventory contains an unsafe or oversized filesystem object")
+                raise CausalFrontierError(
+                    "oracle inventory contains an unsafe or oversized filesystem object",
+                    reason_code="SAFE_FILE_REJECTED",
+                    operation="blind._strict_inventory",
+                )
 
     walk(root_fd, "")
     return files, directories, visited[0], total_bytes[0]
@@ -1141,7 +1164,11 @@ def _validate_oracle_inventory(
         seen_cases.add(case_id)
         action_ids = _experiment_ids(case_lanes[case_id], case_id)
         if len(case_value["actions"]) != len(action_ids):
-            raise CausalFrontierError("oracle action inventory differs from the frozen catalog")
+            raise CausalFrontierError(
+                "oracle action inventory differs from the frozen catalog",
+                reason_code="INVENTORY_MISMATCH",
+                operation="blind._validate_oracle_inventory",
+            )
         seen_actions: set[str] = set()
         view_actions = {item["entrant_action_id"] for item in view_cases[expected_case_alias]["action_batch_tariffs"]}
         for action_value in case_value["actions"]:
@@ -1162,7 +1189,11 @@ def _validate_oracle_inventory(
             seen_actions.add(experiment_id)
             batch = action_value["observations"]
             if len(batch) != race["required_replicates"]:
-                raise CausalFrontierError("oracle replicate inventory differs from the precommitted count")
+                raise CausalFrontierError(
+                    "oracle replicate inventory differs from the precommitted count",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="blind._validate_oracle_inventory",
+                )
             seen_indexes: set[int] = set()
             normalized_batch = []
             for observation in batch:
@@ -1180,19 +1211,35 @@ def _validate_oracle_inventory(
                 paths.add(observation["path"])
                 normalized_batch.append(dict(observation))
             if seen_indexes != set(range(1, race["required_replicates"] + 1)):
-                raise CausalFrontierError("oracle replicate inventory is incomplete")
+                raise CausalFrontierError(
+                    "oracle replicate inventory is incomplete",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="blind._validate_oracle_inventory",
+                )
             observations[(case_id, experiment_id)] = sorted(normalized_batch, key=lambda item: item["replicate_index"])
         if seen_actions != set(action_ids):
-            raise CausalFrontierError("oracle action inventory is incomplete")
+            raise CausalFrontierError(
+                "oracle action inventory is incomplete",
+                reason_code="INVENTORY_MISMATCH",
+                operation="blind._validate_oracle_inventory",
+            )
     if seen_cases != set(case_lanes):
-        raise CausalFrontierError("oracle case inventory is incomplete")
+        raise CausalFrontierError(
+            "oracle case inventory is incomplete",
+            reason_code="INVENTORY_MISMATCH",
+            operation="blind._validate_oracle_inventory",
+        )
     files, directories, entries_n, total_bytes_n = _strict_inventory(
         descriptor,
         observation_paths=paths,
     )
     expected_files = ({ORACLE_MANIFEST} if opening_present else set()) | paths
     if files != expected_files or directories != _expected_directories(paths):
-        raise CausalFrontierError("oracle filesystem inventory differs from its committed coordinate table")
+        raise CausalFrontierError(
+            "oracle filesystem inventory differs from its committed coordinate table",
+            reason_code="INVENTORY_MISMATCH",
+            operation="blind._validate_oracle_inventory",
+        )
     return observations, entries_n, total_bytes_n
 
 
@@ -1289,7 +1336,11 @@ def prepare_synthetic_observation_commitment(
                 or entries_after != oracle_entries_before_opening
                 or bytes_after != oracle_bytes_before_opening
             ):
-                raise CausalFrontierError("observation oracle changed during commitment preflight")
+                raise CausalFrontierError(
+                    "observation oracle changed during commitment preflight",
+                    reason_code="INPUT_CHANGED",
+                    operation="blind.prepare_synthetic_observation_commitment",
+                )
             # A second complete byte pass closes the same-length replacement
             # window between the first digest pass and the metadata inventory.
             # It is still a local point-in-time check, not an immutable snapshot
@@ -1298,7 +1349,11 @@ def prepare_synthetic_observation_commitment(
                 for observation in batch:
                     raw = receipt_io._snapshot(descriptor, observation["path"])
                     if sha256_bytes(raw) != observation["sha256"]:
-                        raise CausalFrontierError("observation bytes changed during commitment preflight")
+                        raise CausalFrontierError(
+                            "observation bytes changed during commitment preflight",
+                            reason_code="INPUT_CHANGED",
+                            operation="blind.prepare_synthetic_observation_commitment",
+                        )
                     _screen_synthetic_observation(raw)
             files_final, directories_final, entries_final, bytes_final = _strict_inventory(
                 descriptor,
@@ -1310,9 +1365,17 @@ def prepare_synthetic_observation_commitment(
                 or entries_final != oracle_entries_before_opening
                 or bytes_final != oracle_bytes_before_opening
             ):
-                raise CausalFrontierError("observation oracle changed during commitment preflight")
-    except OSError:
-        raise CausalFrontierError("observation oracle cannot be preflighted safely") from None
+                raise CausalFrontierError(
+                    "observation oracle changed during commitment preflight",
+                    reason_code="INPUT_CHANGED",
+                    operation="blind.prepare_synthetic_observation_commitment",
+                )
+    except OSError as exc:
+        raise io_error(
+            exc,
+            "observation oracle cannot be preflighted safely",
+            operation="blind.prepare_synthetic_observation_commitment",
+        ) from None
     oracle_entries_n = oracle_entries_before_opening + 1
     oracle_total_bytes_n = oracle_bytes_before_opening + len(prospective_opening_raw)
     if oracle_entries_n > MAX_ORACLE_FILES or oracle_total_bytes_n > MAX_ORACLE_TOTAL_BYTES:
@@ -1672,7 +1735,11 @@ def execute_blind_synthetic_policy(
             or sum(len(batch) for batch in observation_map.values()) != commitment_preflight["observations_n"]
             or oracle_entries_n != commitment_preflight["oracle_entries_n"]
         ):
-            raise CausalFrontierError("opened oracle inventory counts differ from commitment preflight")
+            raise CausalFrontierError(
+                "opened oracle inventory counts differ from commitment preflight",
+                reason_code="INVENTORY_MISMATCH",
+                operation="blind.execute_blind_synthetic_policy",
+            )
         initial_oracle_total_bytes_match = oracle_total_bytes_n == commitment_preflight["oracle_total_bytes_n"]
         lane_trace = next(
             (
@@ -1909,7 +1976,11 @@ def execute_blind_synthetic_policy(
                     or entries_after != oracle_entries_n
                     or bytes_after != oracle_total_bytes_n
                 ):
-                    raise CausalFrontierError("oracle inventory changed during execution")
+                    raise CausalFrontierError(
+                        "oracle inventory changed during execution",
+                        reason_code="INPUT_CHANGED",
+                        operation="blind.execute_blind_synthetic_policy",
+                    )
             except (CausalFrontierError, OSError):
                 _event(
                     events,

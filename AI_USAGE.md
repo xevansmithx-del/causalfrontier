@@ -23,6 +23,8 @@ or make an editorial recommendation. All such judgments remain human decisions.
 |---|---|---|---|
 | 2026-09-04 | OpenAI Codex-based development environment; exact model identifier not preserved in the repository | Publication-readiness audit; documentation, governance, support, and source-tree reproduction materials | Pending explicit review by the human author before any journal submission |
 | 2026-09-04 | Anthropic Claude Science; interface displayed Opus 5, exact backend build not preserved in the repository | Hostile, read-only review of public source, package behavior, novelty boundaries, and publication gaps | AI review only; pending explicit review by the human author and not independent human peer review |
+| 2026-09-05 UTC | OpenAI Codex; exact model identifier and provider/backend build not independently preserved | Diagnostics, documentation, and test assistance; publication-policy clarification | Pending explicit review, editing, and validation by accountable human authors before any journal submission |
+| 2026-09-05 UTC | Anthropic Claude Science; existing session interface displayed Opus 5, exact backend build not preserved | Follow-up read-only review of public source, prerequisites, and publication gaps | AI review only; not independent human peer review or external scientific validation |
 
 Add future material uses to this table or a successor record. Do not rewrite a
 prior entry to make provenance appear more complete than it was.

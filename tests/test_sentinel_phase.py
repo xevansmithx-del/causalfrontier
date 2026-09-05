@@ -422,9 +422,14 @@ def test_null_phase1_predecessor_is_never_a_successor_default(
 
 def test_malformed_phase_context_error_is_hash_seed_stable() -> None:
     script = """
+import sys
+from pathlib import Path
+import causalfrontier
 from causalfrontier.canonical import CausalFrontierError
 from causalfrontier.sentinel import GENERATION_PHASE_CONTEXT_SCHEMA_VERSION, _validate_generation_phase_context
 
+if Path(causalfrontier.__file__).resolve().parents[1] != Path(sys.argv[1]):
+    raise RuntimeError("child process imported a different source tree")
 value = {
     "schema_version": GENERATION_PHASE_CONTEXT_SCHEMA_VERSION,
     "lock_id": "lock:phase-context:error-order",
@@ -440,11 +445,13 @@ except CausalFrontierError as exc:
     print(str(exc))
 """
     outputs = []
+    source_root = Path(causalfrontier.__file__).resolve().parents[1]
+    child_path = os.pathsep.join(filter(None, (str(source_root), os.environ.get("PYTHONPATH"))))
     for seed in ("1", "77"):
         completed = subprocess.run(
-            [sys.executable, "-c", script],
+            [sys.executable, "-c", script, str(source_root)],
             cwd=Path(__file__).resolve().parents[1],
-            env={**os.environ, "PYTHONHASHSEED": seed},
+            env={**os.environ, "PYTHONHASHSEED": seed, "PYTHONPATH": child_path},
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

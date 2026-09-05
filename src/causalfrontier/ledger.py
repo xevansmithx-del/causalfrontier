@@ -12,6 +12,7 @@ from typing import Any, Dict
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_id,
     require_id_list,
@@ -254,6 +255,8 @@ def create_ledger(
             path.unlink()
         if isinstance(exc, CausalFrontierError):
             raise
+        if isinstance(exc, OSError):
+            raise io_error(exc, "cannot create ledger: %s" % exc, operation="ledger.create_ledger") from exc
         raise CausalFrontierError("cannot create ledger: %s" % exc) from exc
     return verify_ledger(path)
 

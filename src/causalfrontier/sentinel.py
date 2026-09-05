@@ -23,6 +23,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_enum,
     require_exact_keys,
@@ -308,8 +309,8 @@ def _read_checkpointed_json(path: Path, expected_sha256: str, label: str) -> tup
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("%s cannot be read safely" % label) from None
+    except OSError as exc:
+        raise io_error(exc, "%s cannot be read safely" % label, operation="sentinel._read_checkpointed_json") from None
     if len(raw) > MAX_FILE_BYTES or sha256_bytes(raw) != expected_sha256:
         raise CausalFrontierError("%s external checkpoint mismatch or size limit exceeded" % label)
     value = _strict_json(raw, label)
@@ -623,7 +624,11 @@ def preflight_sentinel_generation_plan(path: Path, expected_plan_checkpoint_sha2
         path, expected_plan_checkpoint_sha256, "sentinel generation plan"
     )
     if raw != second_raw or canonical_bytes(plan) != canonical_bytes(_validate_generation_plan(second_value)):
-        raise CausalFrontierError("sentinel generation plan changed during preflight")
+        raise CausalFrontierError(
+            "sentinel generation plan changed during preflight",
+            reason_code="INPUT_CHANGED",
+            operation="sentinel.preflight_sentinel_generation_plan",
+        )
     return plan
 
 
@@ -652,7 +657,11 @@ def _inventory(
         elif stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
             entries.add(relative)
         else:
-            raise CausalFrontierError("sentinel inventory contains an unsafe filesystem object")
+            raise CausalFrontierError(
+                "sentinel inventory contains an unsafe filesystem object",
+                reason_code="SAFE_FILE_REJECTED",
+                operation="sentinel._inventory",
+            )
     return entries
 
 
@@ -715,7 +724,11 @@ def _snapshot_bundle(
             artifacts, by_id = _validate_artifact_descriptors(document.get("artifacts"))
             expected_files = {MANIFEST, *(item["path"] for item in artifacts)}
             if _inventory(root_fd) != expected_files:
-                raise CausalFrontierError("sentinel bundle inventory differs from its manifest")
+                raise CausalFrontierError(
+                    "sentinel bundle inventory differs from its manifest",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="sentinel._snapshot_bundle",
+                )
             snapshots: dict[str, bytes] = {}
             total = len(raw_manifest)
             for item in artifacts:
@@ -730,9 +743,13 @@ def _snapshot_bundle(
                     _strict_json(raw, item["artifact_id"])
                 snapshots[item["artifact_id"]] = raw
             if _inventory(root_fd) != expected_files:
-                raise CausalFrontierError("sentinel bundle inventory changed while being read")
-    except OSError:
-        raise CausalFrontierError("sentinel bundle cannot be read safely") from None
+                raise CausalFrontierError(
+                    "sentinel bundle inventory changed while being read",
+                    reason_code="INPUT_CHANGED",
+                    operation="sentinel._snapshot_bundle",
+                )
+    except OSError as exc:
+        raise io_error(exc, "sentinel bundle cannot be read safely", operation="sentinel._snapshot_bundle") from None
     return raw_manifest, document, by_id, snapshots
 
 
@@ -1316,7 +1333,11 @@ def _validate_source_inventory(
         or value["case_id"] != case["case_id"]
         or value["knowledge_cutoff"] != case["knowledge_cutoff"]
     ):
-        raise CausalFrontierError("case source inventory identity or cutoff differs")
+        raise CausalFrontierError(
+            "case source inventory identity or cutoff differs",
+            reason_code="INVENTORY_MISMATCH",
+            operation="sentinel._validate_source_inventory",
+        )
     sources = value["sources"]
     if not isinstance(sources, list) or not 1 <= len(sources) <= 64:
         raise CausalFrontierError("case source inventory has invalid size")
@@ -1369,7 +1390,11 @@ def _validate_source_inventory(
             and availability_value["state"] == "DECLARED_ONLY_NOT_INDEPENDENTLY_ATTESTED"
             and availability_value["independent_temporal_attestation_verified"] is False
         ):
-            raise CausalFrontierError("availability evidence identity or declared date differs from source inventory")
+            raise CausalFrontierError(
+                "availability evidence identity or declared date differs from source inventory",
+                reason_code="INVENTORY_MISMATCH",
+                operation="sentinel._validate_source_inventory",
+            )
         late = late or available_at > case["knowledge_cutoff"]
         require_enum(source["data_class"], {"PUBLIC_AGGREGATE", "SYNTHETIC"}, "source data class")
         if not (
@@ -1378,7 +1403,11 @@ def _validate_source_inventory(
             and availability["sha256"]
             == _artifact_digest(source["availability_evidence_sha256"], "source availability evidence digest")
         ):
-            raise CausalFrontierError("source inventory bytes or data class differ from exact evidence artifacts")
+            raise CausalFrontierError(
+                "source inventory bytes or data class differ from exact evidence artifacts",
+                reason_code="INVENTORY_MISMATCH",
+                operation="sentinel._validate_source_inventory",
+            )
         if source["semantic_state"] != "DECISION_CRITICAL_DECLARED_NOT_EXTERNALLY_ADJUDICATED":
             raise CausalFrontierError("source inventory invents semantic adjudication")
     if source_ids != sorted(set(source_ids)) or len({item.casefold() for item in source_ids}) != len(source_ids):
@@ -2382,7 +2411,11 @@ def _preflight_sentinel_admission_core(
                 assignment["role_packet_sha256"] == descriptors["role_packet_artifact_id"]["sha256"]
                 and assignment["source_inventory_sha256"] == descriptors["source_inventory_artifact_id"]["sha256"]
             ):
-                raise CausalFrontierError("case role or exact source inventory differs from its pre-generation lock")
+                raise CausalFrontierError(
+                    "case role or exact source inventory differs from its pre-generation lock",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="sentinel._preflight_sentinel_admission_core",
+                )
             payload = _strict_json(snapshots[case["case_payload_artifact_id"]], "%s payload" % case_id)
             if not isinstance(payload, dict):
                 raise CausalFrontierError("case payload must be an object")
@@ -2732,7 +2765,11 @@ def _preflight_sentinel_admission_core(
         and canonical_bytes(by_id) == canonical_bytes(second_by_id)
         and snapshots == second_snapshots
     ):
-        raise CausalFrontierError("sentinel bundle changed during preflight")
+        raise CausalFrontierError(
+            "sentinel bundle changed during preflight",
+            reason_code="INPUT_CHANGED",
+            operation="sentinel._preflight_sentinel_admission_core",
+        )
     second_generation = preflight_sentinel_generation_plan(generation_plan_path, expected_generation_plan_sha256)
     second_goal_raw, second_goal_value = claim._read_checkpointed_plan(
         goal_claim_plan_path, expected_goal_claim_plan_sha256
@@ -2743,7 +2780,11 @@ def _preflight_sentinel_admission_core(
         and canonical_bytes(goal_plan) == canonical_bytes(claim.validate_goal_claim_plan(second_goal_value))
         and goal_preflight == claim.preflight_goal_claim_plan(goal_claim_plan_path, expected_goal_claim_plan_sha256)
     ):
-        raise CausalFrontierError("a predecessor plan changed during sentinel preflight")
+        raise CausalFrontierError(
+            "a predecessor plan changed during sentinel preflight",
+            reason_code="INPUT_CHANGED",
+            operation="sentinel._preflight_sentinel_admission_core",
+        )
 
     gates = _expected_report_gates(
         generator_component_collision_pairs=generator_component_collision_pairs,

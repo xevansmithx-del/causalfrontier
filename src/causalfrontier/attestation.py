@@ -29,6 +29,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_exact_keys,
     require_id,
@@ -151,13 +152,27 @@ def _load_closed_bundle(
                     raise CausalFrontierError("%s bundle exceeds the total byte limit" % manifest_name)
                 snapshots[relative] = snapshot
             if receipt_io._inventory(descriptor) != inventory:
-                raise CausalFrontierError("%s inventory changed during verification" % manifest_name)
+                raise CausalFrontierError(
+                    "%s inventory changed during verification" % manifest_name,
+                    reason_code="INPUT_CHANGED",
+                    operation="attestation._load_closed_bundle",
+                )
             if receipt_io._snapshot(descriptor, manifest_name) != raw_manifest:
-                raise CausalFrontierError("%s changed during verification" % manifest_name)
-    except OSError:
-        raise CausalFrontierError("%s bundle cannot be read safely" % manifest_name) from None
+                raise CausalFrontierError(
+                    "%s changed during verification" % manifest_name,
+                    reason_code="INPUT_CHANGED",
+                    operation="attestation._load_closed_bundle",
+                )
+    except OSError as exc:
+        raise io_error(
+            exc, "%s bundle cannot be read safely" % manifest_name, operation="attestation._load_closed_bundle"
+        ) from None
     if snapshots.get(manifest_name) != raw_manifest:
-        raise CausalFrontierError("%s changed during verification" % manifest_name)
+        raise CausalFrontierError(
+            "%s changed during verification" % manifest_name,
+            reason_code="INPUT_CHANGED",
+            operation="attestation._load_closed_bundle",
+        )
     return manifest, snapshots
 
 
@@ -231,7 +246,11 @@ def _validate_trust_policy(
         chain_bytes = snapshots[chain_path]
         expected_files.add(chain_path)
     if set(snapshots) != expected_files:
-        raise CausalFrontierError("RFC 3161 trust-policy inventory differs")
+        raise CausalFrontierError(
+            "RFC 3161 trust-policy inventory differs",
+            reason_code="INVENTORY_MISMATCH",
+            operation="attestation._validate_trust_policy",
+        )
     if sha256_bytes(snapshots[TRUST_POLICY_MANIFEST]) != expected_checkpoint_sha256:
         raise CausalFrontierError("RFC 3161 trust-policy checkpoint changed")
     return policy, snapshots[anchor_path], chain_bytes
@@ -286,7 +305,11 @@ def _validate_attestation(
     if snapshots.get(response_path) is None or sha256_bytes(snapshots[response_path]) != response_sha256:
         raise CausalFrontierError("RFC 3161 response digest mismatch")
     if set(snapshots) != {ATTESTATION_MANIFEST, request_path, response_path}:
-        raise CausalFrontierError("RFC 3161 attestation inventory differs")
+        raise CausalFrontierError(
+            "RFC 3161 attestation inventory differs",
+            reason_code="INVENTORY_MISMATCH",
+            operation="attestation._validate_attestation",
+        )
     if sha256_bytes(snapshots[ATTESTATION_MANIFEST]) != expected_checkpoint_sha256:
         raise CausalFrontierError("RFC 3161 attestation checkpoint changed")
     _require_single_sequence(snapshots[request_path], "RFC 3161 request")
@@ -356,8 +379,8 @@ def _read_target(path: Path, expected_sha256: str) -> bytes:
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("RFC 3161 target cannot be read safely") from None
+    except OSError as exc:
+        raise io_error(exc, "RFC 3161 target cannot be read safely", operation="attestation._read_target") from None
     if sha256_bytes(raw) != expected_sha256:
         raise CausalFrontierError("RFC 3161 target external checkpoint mismatch")
     receipt_io._screen(raw)
@@ -377,7 +400,11 @@ def _read_openssl_binary(path: Path, expected_sha256: str) -> tuple[bytes, str]:
                 or before.st_size > MAX_OPENSSL_BYTES
                 or before.st_mode & 0o111 == 0
             ):
-                raise CausalFrontierError("OpenSSL verifier must be a bounded executable regular file")
+                raise CausalFrontierError(
+                    "OpenSSL verifier must be a bounded executable regular file",
+                    reason_code="SAFE_FILE_REJECTED",
+                    operation="attestation._read_openssl_binary",
+                )
             chunks = []
             remaining = MAX_OPENSSL_BYTES + 1
             while remaining:
@@ -390,15 +417,27 @@ def _read_openssl_binary(path: Path, expected_sha256: str) -> tuple[bytes, str]:
             after = os.fstat(descriptor)
         finally:
             os.close(descriptor)
-    except (OSError, RuntimeError):
-        raise CausalFrontierError("OpenSSL verifier cannot be read safely") from None
+    except OSError as exc:
+        raise io_error(
+            exc, "OpenSSL verifier cannot be read safely", operation="attestation._read_openssl_binary"
+        ) from None
+    except RuntimeError:
+        raise CausalFrontierError(
+            "OpenSSL verifier cannot be read safely",
+            reason_code="SAFE_PATH_REJECTED",
+            operation="attestation._read_openssl_binary",
+        ) from None
     if (
         len(raw) > MAX_OPENSSL_BYTES
         or len(raw) != before.st_size
         or (before.st_size, before.st_mtime_ns, before.st_ctime_ns, before.st_nlink)
         != (after.st_size, after.st_mtime_ns, after.st_ctime_ns, after.st_nlink)
     ):
-        raise CausalFrontierError("OpenSSL verifier changed while being read")
+        raise CausalFrontierError(
+            "OpenSSL verifier changed while being read",
+            reason_code="INPUT_CHANGED",
+            operation="attestation._read_openssl_binary",
+        )
     digest = sha256_bytes(raw)
     if digest != expected_sha256:
         raise CausalFrontierError("OpenSSL binary external checkpoint mismatch")
@@ -407,11 +446,17 @@ def _read_openssl_binary(path: Path, expected_sha256: str) -> tuple[bytes, str]:
 
 def _run_openssl(binary: Path, arguments: list[str], label: str, working_root: Path, config: Path) -> str:
     if not hasattr(os, "killpg"):
-        raise CausalFrontierError("RFC 3161 verifier requires POSIX process-group isolation")
+        raise CausalFrontierError(
+            "RFC 3161 verifier requires POSIX process-group isolation",
+            reason_code="ENVIRONMENT_UNSUPPORTED",
+            operation="openssl_process_isolation",
+        )
     try:
         selector = selectors.DefaultSelector()
-    except OSError:
-        raise CausalFrontierError("OpenSSL %s output isolation is unavailable" % label) from None
+    except OSError as exc:
+        raise io_error(
+            exc, "OpenSSL %s output isolation is unavailable" % label, operation="openssl_output_isolation"
+        ) from None
     try:
         process = subprocess.Popen(
             [str(binary), *arguments],
@@ -430,9 +475,9 @@ def _run_openssl(binary: Path, arguments: list[str], label: str, working_root: P
             },
             start_new_session=True,
         )
-    except OSError:
+    except OSError as exc:
         selector.close()
-        raise CausalFrontierError("OpenSSL %s could not complete" % label) from None
+        raise io_error(exc, "OpenSSL %s could not complete" % label, operation="openssl_launch") from None
 
     if process.stdout is None or process.stderr is None:
         with suppress(ProcessLookupError, PermissionError):
@@ -440,7 +485,11 @@ def _run_openssl(binary: Path, arguments: list[str], label: str, working_root: P
         with suppress(subprocess.TimeoutExpired):
             process.wait(timeout=1)
         selector.close()
-        raise CausalFrontierError("OpenSSL %s output pipes are unavailable" % label)
+        raise CausalFrontierError(
+            "OpenSSL %s output pipes are unavailable" % label,
+            reason_code="SUBPROCESS_OUTPUT_UNAVAILABLE",
+            operation="openssl_output",
+        )
     streams = {process.stdout: bytearray(), process.stderr: bytearray()}
     deadline = time.monotonic() + OPENSSL_TIMEOUT_SECONDS
     try:
@@ -460,13 +509,23 @@ def _run_openssl(binary: Path, arguments: list[str], label: str, working_root: P
                     continue
                 buffer.extend(chunk)
                 if len(buffer) > MAX_SUBPROCESS_OUTPUT_BYTES:
-                    raise CausalFrontierError("OpenSSL %s output exceeds the verification limit" % label)
+                    raise CausalFrontierError(
+                        "OpenSSL %s output exceeds the verification limit" % label,
+                        reason_code="SUBPROCESS_OUTPUT_LIMIT",
+                        operation="openssl_output",
+                    )
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise subprocess.TimeoutExpired(str(binary), OPENSSL_TIMEOUT_SECONDS)
         returncode = process.wait(timeout=remaining)
-    except (OSError, subprocess.TimeoutExpired):
-        raise CausalFrontierError("OpenSSL %s could not complete" % label) from None
+    except OSError as exc:
+        raise io_error(exc, "OpenSSL %s could not complete" % label, operation="openssl_execution") from None
+    except subprocess.TimeoutExpired:
+        raise CausalFrontierError(
+            "OpenSSL %s could not complete" % label,
+            reason_code="SUBPROCESS_TIMEOUT",
+            operation="openssl_execution",
+        ) from None
     finally:
         selector.close()
         with suppress(ProcessLookupError, PermissionError):
@@ -477,11 +536,19 @@ def _run_openssl(binary: Path, arguments: list[str], label: str, working_root: P
         with suppress(subprocess.TimeoutExpired):
             process.wait(timeout=1)
     if returncode != 0:
-        raise CausalFrontierError("OpenSSL %s rejected the RFC 3161 evidence" % label)
+        raise CausalFrontierError(
+            "OpenSSL %s rejected the RFC 3161 evidence" % label,
+            reason_code="SUBPROCESS_NONZERO_EXIT",
+            operation="openssl_execution",
+        )
     try:
         return bytes(streams[process.stdout]).decode("utf-8")
     except UnicodeError:
-        raise CausalFrontierError("OpenSSL %s output is not UTF-8" % label) from None
+        raise CausalFrontierError(
+            "OpenSSL %s output is not UTF-8" % label,
+            reason_code="SUBPROCESS_OUTPUT_INVALID",
+            operation="openssl_output",
+        ) from None
 
 
 def _field(text: str, label: str) -> str:
@@ -541,8 +608,12 @@ def _canonical_public_key_material_sha256(
     _run_openssl(binary, arguments, "%s canonical key-material projection" % label, working_root, config)
     try:
         raw = output.read_bytes()
-    except OSError:
-        raise CausalFrontierError("%s canonical key-material projection is unreadable" % label) from None
+    except OSError as exc:
+        raise io_error(
+            exc,
+            "%s canonical key-material projection is unreadable" % label,
+            operation="attestation._canonical_public_key_material_sha256",
+        ) from None
     if not raw or len(raw) > MAX_SUBPROCESS_OUTPUT_BYTES:
         raise CausalFrontierError("%s canonical key-material projection is outside bounds" % label)
     _require_single_sequence(raw, "%s canonical key material" % label)
@@ -913,7 +984,11 @@ def verify_rfc3161_attestation(
         )
 
         if sha256_bytes(openssl_binary.read_bytes()) != expected_openssl_sha256:
-            raise CausalFrontierError("private OpenSSL executable snapshot changed during verification")
+            raise CausalFrontierError(
+                "private OpenSSL executable snapshot changed during verification",
+                reason_code="INPUT_CHANGED",
+                operation="attestation.verify_rfc3161_attestation",
+            )
         token_digest = sha256_bytes(token_file.read_bytes())
 
     maximum_accuracy_seconds = trust_policy["maximum_accuracy_seconds"]

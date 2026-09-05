@@ -33,6 +33,7 @@ from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
     canonical_bytes,
+    io_error,
     read_json_bytes,
     require_exact_keys,
     require_id,
@@ -589,11 +590,19 @@ def _inventory(
                 child = receipt_io._open_directory(stack, name, root_fd)
                 _inventory(child, relative + "/", entries, visited)
             if len(entries) == before:
-                raise CausalFrontierError("continuity composition contains an empty directory")
+                raise CausalFrontierError(
+                    "continuity composition contains an empty directory",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="sentinel_continuity._inventory",
+                )
         elif stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
             entries.add(relative)
         else:
-            raise CausalFrontierError("continuity composition contains an unsafe filesystem object")
+            raise CausalFrontierError(
+                "continuity composition contains an unsafe filesystem object",
+                reason_code="SAFE_FILE_REJECTED",
+                operation="sentinel_continuity._inventory",
+            )
     return entries
 
 
@@ -623,7 +632,11 @@ def _snapshot_bundle(
             }
             covered = direct | {path for path in inventory if any(_under(path, prefix) for prefix in prefixes)}
             if inventory != covered or any(not any(_under(path, prefix) for path in inventory) for prefix in prefixes):
-                raise CausalFrontierError("continuity composition inventory is orphaned or incomplete")
+                raise CausalFrontierError(
+                    "continuity composition inventory is orphaned or incomplete",
+                    reason_code="INVENTORY_MISMATCH",
+                    operation="sentinel_continuity._snapshot_bundle",
+                )
             snapshots: dict[str, bytes] = {}
             total = 0
             for relative in sorted(inventory):
@@ -641,9 +654,15 @@ def _snapshot_bundle(
             if any(sha256_bytes(snapshots[path]) != digest for path, digest in declared.items()):
                 raise CausalFrontierError("continuity declared artifact bytes differ")
             if _inventory(descriptor) != inventory:
-                raise CausalFrontierError("continuity inventory changed while being read")
-    except OSError:
-        raise CausalFrontierError("continuity composition cannot be read safely") from None
+                raise CausalFrontierError(
+                    "continuity inventory changed while being read",
+                    reason_code="INPUT_CHANGED",
+                    operation="sentinel_continuity._snapshot_bundle",
+                )
+    except OSError as exc:
+        raise io_error(
+            exc, "continuity composition cannot be read safely", operation="sentinel_continuity._snapshot_bundle"
+        ) from None
     return manifest, snapshots, inventory, paths, witnesses, stores
 
 
@@ -891,8 +910,12 @@ def _read_predecessor_state(
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             raw = receipt_io._snapshot(descriptor, path.name)
-    except OSError:
-        raise CausalFrontierError("continuity predecessor state cannot be read safely") from None
+    except OSError as exc:
+        raise io_error(
+            exc,
+            "continuity predecessor state cannot be read safely",
+            operation="sentinel_continuity._read_predecessor_state",
+        ) from None
     value = _shape(
         _canonical_json(raw, "continuity predecessor state"),
         {
@@ -1234,12 +1257,24 @@ def preflight_sentinel_dual_log_continuity(
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, root)
             if _inventory(descriptor) != inventory:
-                raise CausalFrontierError("continuity inventory changed during replay")
+                raise CausalFrontierError(
+                    "continuity inventory changed during replay",
+                    reason_code="INPUT_CHANGED",
+                    operation="sentinel_continuity.preflight_sentinel_dual_log_continuity",
+                )
             for relative, raw in snapshots.items():
                 if receipt_io._snapshot(descriptor, relative) != raw:
-                    raise CausalFrontierError("continuity bytes changed during replay")
-    except OSError:
-        raise CausalFrontierError("continuity composition cannot be reread safely") from None
+                    raise CausalFrontierError(
+                        "continuity bytes changed during replay",
+                        reason_code="INPUT_CHANGED",
+                        operation="sentinel_continuity.preflight_sentinel_dual_log_continuity",
+                    )
+    except OSError as exc:
+        raise io_error(
+            exc,
+            "continuity composition cannot be reread safely",
+            operation="sentinel_continuity.preflight_sentinel_dual_log_continuity",
+        ) from None
     if predecessor_continuity_state_path is not None and predecessor_raw is not None:
         repeated_predecessor_raw, _repeated_predecessor_state = _read_predecessor_state(
             predecessor_continuity_state_path,
@@ -1248,7 +1283,11 @@ def preflight_sentinel_dual_log_continuity(
             target_stores,
         )
         if repeated_predecessor_raw != predecessor_raw:
-            raise CausalFrontierError("continuity predecessor state changed during replay")
+            raise CausalFrontierError(
+                "continuity predecessor state changed during replay",
+                reason_code="INPUT_CHANGED",
+                operation="sentinel_continuity.preflight_sentinel_dual_log_continuity",
+            )
 
     gates = sorted(
         [
