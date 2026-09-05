@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -21,7 +22,13 @@ def test_guide_ref_rejects_non_exact_commit_before_git(tmp_path: Path, candidate
     result = subprocess.run(
         ["sh", "-c", "cf_select_guide_ref() {" + function + "\n}\ncf_select_guide_ref"],
         cwd=tmp_path,
-        env={**os.environ, "CAUSALFRONTIER_GUIDE_REF": candidate},
+        # macOS collation can include uppercase letters inside an a-f range.
+        # The guide must use literal lowercase membership, not locale ranges.
+        env={
+            **os.environ,
+            "CAUSALFRONTIER_GUIDE_REF": candidate,
+            "LC_ALL": "en_US.UTF-8" if sys.platform == "darwin" else "C",
+        },
         capture_output=True,
         text=True,
         timeout=10,

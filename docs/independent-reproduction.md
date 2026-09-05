@@ -83,7 +83,7 @@ cf_sha256_check() {
 cf_select_guide_ref() {
   if [ -n "${CAUSALFRONTIER_GUIDE_REF:-}" ]; then
     case "$CAUSALFRONTIER_GUIDE_REF" in
-      *[!0-9a-f]*|'') return 2 ;;
+      *[!0123456789abcdef]*|'') return 2 ;;
     esac
     [ "${#CAUSALFRONTIER_GUIDE_REF}" -eq 40 ] || return 2
     guide_resolved=$(git rev-parse --verify "$CAUSALFRONTIER_GUIDE_REF^{commit}") || return 2
