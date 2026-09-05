@@ -371,7 +371,24 @@ does not authenticate identity or independence.
 
 Submit the result through the repository's **External source-tree
 reproduction** issue template. A failed environment sync or confusing
-instruction is valuable evidence; do not silently work around it.
+instruction is valuable evidence; do not silently work around it. If failure
+prevented you from obtaining a requested identifier, record `not reached` and
+the step where you stopped.
+
+Record the first attempt's result and measured time before describing any
+workaround, assistance, or retry. Identify individualized maintainer, other
+human, or interactive AI help beyond these public instructions. Report each
+later attempt separately, including what changed and whether it succeeded;
+a successful retry must not replace the original failure. Mark unmeasured
+times as unknown.
+
+Assisted participants, contributors, and automated or AI processes may submit
+usability and failure reports through the same form. Their reports, and those
+with uncertain involvement or assistance, do not count toward the three
+unfamiliar, unassisted human pilot completions. Only separately assessed
+eligible human completions may count; a self-declared report does not
+authenticate independence. An automated replay remains an automated replay
+even when it runs in a fresh checkout or a separate agent context.
 
 ## Success criteria
 

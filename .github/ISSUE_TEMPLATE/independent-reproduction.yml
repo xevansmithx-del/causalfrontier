@@ -1,11 +1,23 @@
 name: External source-tree reproduction
-description: Report a self-declared external run of the pinned synthetic workflow.
+description: Report a pinned synthetic workflow attempt, including failures and assisted runs.
 title: "[reproduction]: "
 body:
   - type: markdown
     attributes:
       value: |
         Thank you for reporting a source-tree test. This report is self-declared and attributed to your GitHub account; it does not by itself authenticate identity, independence, a packaged release, or a scientific result. The current pilot tests only engine commit 1995cf7379523c952dc19f56fdc01b15a9212583; packaged release v0.1.0a2 is explicitly excluded because it is not aligned with the current source-tree example or guide. Use only public or synthetic data. Remove credentials, private paths, patient information, and restricted material before submitting.
+        Report your first attempt even if a later retry succeeded. Assisted, contributor, automated, and uncertain reports are retained as usability evidence; they do not count toward the three unfamiliar, unassisted human pilot completions. Eligibility requires separate assessment, not just selecting an option below. For an identifier you could not obtain before failure, write "not reached" and explain where you stopped.
+  - type: dropdown
+    id: reporter_kind
+    attributes:
+      label: Reporter involvement
+      options:
+        - Human with no prior project contribution or collaboration
+        - Human contributor, collaborator, or maintainer
+        - AI agent or automated process
+        - Uncertain or another relationship (describe below)
+    validations:
+      required: true
   - type: input
     id: guide_revision
     attributes:
@@ -48,7 +60,7 @@ body:
   - type: dropdown
     id: result
     attributes:
-      label: Result
+      label: First attempt result
       options:
         - Completed without undocumented changes
         - Completed after an undocumented workaround
@@ -59,6 +71,7 @@ body:
     id: elapsed
     attributes:
       label: Elapsed setup and run time
+      description: Give the first attempt's time separately from any later retry; mark unmeasured times as unknown.
       placeholder: e.g. 18 minutes
     validations:
       required: true
@@ -67,6 +80,26 @@ body:
     attributes:
       label: First failure or ambiguity
       description: Give the first unexpected output or unclear instruction. Write “none” only if there was none.
+    validations:
+      required: true
+  - type: dropdown
+    id: assistance
+    attributes:
+      label: Assistance during the first attempt
+      description: Disclose individualized help beyond the recorded public instructions, including interactive AI help.
+      options:
+        - None
+        - Maintainer assistance
+        - Other assistance, including interactive AI help
+        - Both maintainer and other assistance
+        - Uncertain (describe below)
+    validations:
+      required: true
+  - type: textarea
+    id: retries
+    attributes:
+      label: Assistance, workarounds, and later attempts
+      description: Describe any first-attempt help or workaround and each later retry separately, including what changed, who or what helped, result, and elapsed time if measured. Preserve the original failure above. Write "none" if there was no assistance, workaround, or retry.
     validations:
       required: true
   - type: textarea
@@ -84,11 +117,11 @@ body:
     validations:
       required: true
   - type: checkboxes
-    id: independence
+    id: disclosure
     attributes:
-      label: Independence and data boundary
+      label: Disclosure and data boundary
       options:
-        - label: I did not author or contribute to either recorded guide or engine revision, and no maintainer gave me individualized assistance or directed my run beyond the recorded public instructions.
+        - label: I have disclosed prior involvement, assistance, workarounds, and retries, and preserved the first attempt's outcome separately.
           required: true
         - label: I used no patient-level, private, restricted, or wet-lab data.
           required: true
