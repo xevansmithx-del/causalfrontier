@@ -31,6 +31,13 @@ DISCOVER
 
 Any temporal uncertainty, semantic incompleteness, open authority gate, classifier ambiguity, memory-head mismatch, privacy concern, or contradiction routes to `ABSTAIN_OR_NEW_CASE`, not an inferred scientific result.
 
+The additive [evidence-fit audit](evidence-fit.md) is a diagnostic side step after
+`FREEZE_RECEIPTS`: freeze a separately checkpointed authored extraction, compare
+source/target declarations, and replay the complete report. It never advances
+the scientific workflow through independent authorship, reconciliation,
+historical admission or scoring. Preserve the report and its unresolved fields
+as a successor artifact; do not reinterpret a frozen predecessor's source card.
+
 ## Five bound identities
 
 Every evaluated run must bind five independent identities:
