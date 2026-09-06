@@ -1,5 +1,36 @@
 # Validation record
 
+## Single prediction-cell withdrawal audit — development source, 2026-09-06
+
+The [audit and reproduction guide](docs/assumption-audit.md) defines a bounded
+authoring-dependency diagnostic. It uses ordinary validation and compilation,
+preserves original cases, retains rejected withdrawals as requiring reauthoring,
+and rederives every report row. It never executes a classifier or experiment.
+
+The one existing standalone synthetic case-v1 example supplies 12 eligible cells:
+six valid withdrawals and six contract rejections. All six valid withdrawals
+change strict pair separation; four change tied co-minimax membership; zero
+change frontier membership or retained world/class sets. This is a known-input
+regression illustration, not a prospective biomedical evaluation.
+
+The added focused checks cover every reported coordinate and digest, one-cell
+mutation isolation, exact 128-cell completion and rejection at 129, work/JSON
+bounds, source-ID retention, open gates, authority refusal, normalized reordering,
+duplicated-world encoding dependence, genuine compiler-fault propagation, and
+coherently rehashed modifications to rows, counts, coordinates, sources,
+selection, authority and nonclaims. CLI checks additionally cover exact-byte
+checkpoints, source drift, parent symlinks, symlinks, hard links, FIFO/nonregular
+files, oversize input and hostile JSON. The assertion-independent normal/optimized
+probe enforces the synthetic counts and rejects omitted rows after rehashing.
+
+Prior temporal-leakage, privacy, branch-totality, authority, capsule rollback and
+hostile-input tests remain unchanged. This feature neither grants independent
+custody nor makes a present-day hypothetical variant historically precommitted.
+Full-suite, runtime, source-freeze and package check results are reported for the
+exact PR head; earlier validation sections remain historical, not inherited
+certification of new bytes. No independent scientific use, semantic control,
+prospective score, clinical/material authority or tenfold benefit is added.
+
 This record covers software behavior and synthetic fixtures only.
 
 ## Role-hidden structured-action calibration V2 (local structural rehearsal, 2026-09-02)

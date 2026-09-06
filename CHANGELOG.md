@@ -4,6 +4,11 @@ All notable changes to CausalFrontier are documented here.
 
 ## Unreleased
 
+- Add a bounded, read-only single prediction-cell withdrawal audit and full
+  report replay. Preserve invalid variants as requiring reauthoring, distinguish
+  frontier membership from tied co-minimax membership and strict pair separation,
+  and retain all eligible cells. This is an authoring-dependency diagnostic, not
+  a robustness certificate, new sensitivity method or scientific result.
 - Add opt-in, path-free runtime-exception diagnostics using numeric OS errors
   and distinct file, inventory, race, and subprocess reason codes. Existing
   successful protocol output and default error text remain unchanged.
