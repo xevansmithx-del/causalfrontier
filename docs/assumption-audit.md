@@ -1,5 +1,9 @@
 # Single prediction-cell withdrawal audit
 
+For explicitly declared multi-cell premises, see the separate
+[grouped withdrawal audit](group-assumption-audit.md). That successor does not
+change this audit's single-cell contract or turn cell counts into premise counts.
+
 This development-source feature asks a narrow authoring question: **which
 individual declared relations change the compiler's outputs when replaced with
 `UNKNOWN`, and which withdrawals invalidate the case contract?** It makes

@@ -81,3 +81,16 @@ Stop or redesign this representation if any gate fails:
 - domain reviewers consistently interpret structural admissibility as biological or clinical authority.
 
 The billion-life aspiration is a direction for choosing leverage, not a measured result, forecast, or release claim.
+
+## Bounded authoring-dependence milestone — 2026-09-06
+
+The single-cell withdrawal audit left a concrete failure mode: exact duplication
+of decision-equivalent worlds can preserve baseline selection while masking the
+effect of individual cell withdrawals. A known synthetic witness confirmed that
+a declared two-cell withdrawal changes frontier and co-minimax membership even
+though both constituent singleton selections remain unchanged. Select a
+[declared grouped audit](group-assumption-audit.md) and an independent exhaustive
+finite oracle as the next implementation milestone. Do not change the baseline
+selector, infer dependencies from shared citations, or characterize this as new
+sensitivity theory. This resolves a bounded representation-audit gap; independently
+authored scientific utility and all empirical breakthrough gates above remain open.
