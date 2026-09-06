@@ -43,6 +43,9 @@ jobs:
         run: uv run --frozen --no-sync python -m compileall -q src tests
       - name: Replay neutral boundary on supported runtime
         run: |
+          assumptions_normal=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/assumptions_optimized_probe.py)
+          assumptions_optimized=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/assumptions_optimized_probe.py)
+          test "$assumptions_normal" = "$assumptions_optimized"
           neutral_normal=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python tests/neutral_optimized_probe.py)
           neutral_optimized=$(PYTHONHASHSEED=1 uv run --frozen --no-sync python -O tests/neutral_optimized_probe.py)
           test "$neutral_normal" = "$neutral_optimized"

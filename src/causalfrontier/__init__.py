@@ -4,6 +4,7 @@ from .version import DISTRIBUTION_VERSION
 
 __version__ = DISTRIBUTION_VERSION
 
+from .assumptions import audit_assumptions, verify_assumption_audit
 from .attestation import verify_rfc3161_attestation
 from .blind import (
     bind_blind_selection_precommitment,
@@ -68,6 +69,7 @@ from .sentinel_witness import (
 __all__ = [
     "append_event",
     "assess_registry_candidate",
+    "audit_assumptions",
     "bind_blind_selection_precommitment",
     "build_capsule",
     "build_sanitized_entrant_view",
@@ -109,6 +111,7 @@ __all__ = [
     "simulate_branch",
     "validate_case",
     "validate_neutral_action_catalog",
+    "verify_assumption_audit",
     "verify_calibration_v2_report",
     "verify_capsule",
     "verify_ledger",

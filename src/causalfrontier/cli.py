@@ -5,9 +5,12 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from . import receipts as receipt_io
+from .assumptions import audit_assumptions, verify_assumption_audit
 from .attestation import verify_rfc3161_attestation
 from .blind import (
     bind_blind_selection_precommitment,
@@ -24,7 +27,7 @@ from .calibration_v2 import (
     seal_calibration_v2_submission,
     verify_calibration_v2_report,
 )
-from .canonical import CausalFrontierError, io_error
+from .canonical import CausalFrontierError, canonical_bytes, io_error, read_json_bytes, require_sha256, sha256_bytes
 from .capsule import build_capsule, record_rehearsal, verify_capsule
 from .challenge import preflight_challenge
 from .claim import preflight_goal_claim_plan, verify_goal_claim_plan_preflight
@@ -83,6 +86,26 @@ def _read_checkpointed_seed(path: Path, expected_sha256: str) -> bytes:
         raise CausalFrontierError(message, **exc.diagnostic()) from None
 
 
+def _read_assumption_report(path: Path, expected_sha256: str) -> dict[str, Any]:
+    """Hash and parse the same bounded, no-follow, single-link snapshot."""
+
+    require_sha256(expected_sha256, "assumption audit external checkpoint")
+    try:
+        with ExitStack() as stack:
+            descriptor = receipt_io._root_descriptor(stack, path.parent)
+            raw = receipt_io._snapshot(descriptor, path.name)
+    except OSError as exc:
+        raise io_error(exc, "cannot read assumption audit safely", operation="cli._read_assumption_report") from None
+    if sha256_bytes(raw) != expected_sha256:
+        raise CausalFrontierError("assumption audit external checkpoint mismatch")
+    receipt_io._screen(raw)
+    value = read_json_bytes(raw, "assumption audit")
+    if not isinstance(value, dict):
+        raise CausalFrontierError("assumption audit must be an object")
+    receipt_io._screen(canonical_bytes(value))
+    return value
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
         prog="causalfrontier",
@@ -105,6 +128,18 @@ def parser() -> argparse.ArgumentParser:
     doctor.add_argument("--expected-openssl-sha256", help="caller-preserved SHA-256 of the trusted executable")
     analyze = commands.add_parser("analyze", help="analyze a frozen case root")
     analyze.add_argument("case_root", type=Path)
+    assumptions = commands.add_parser(
+        "audit-assumptions", help="audit single prediction-cell withdrawals without executing classifiers"
+    )
+    assumptions.add_argument("case_root", type=Path)
+    verify_assumptions = commands.add_parser(
+        "verify-assumption-audit", help="rederive a checkpointed single-cell audit; scientific scoring stays disabled"
+    )
+    verify_assumptions.add_argument("case_root", type=Path)
+    verify_assumptions.add_argument("report", type=Path)
+    verify_assumptions.add_argument(
+        "--expected-report-sha256", required=True, help="caller-preserved SHA-256 of exact serialized report bytes"
+    )
     classify = commands.add_parser("classify", help="execute digest-bound classifiers on frozen inputs")
     classify.add_argument("case_root", type=Path)
     receipts = commands.add_parser("preflight-receipts", help="bind receipt bytes; historical scoring stays disabled")
@@ -567,6 +602,11 @@ def main(argv: Optional[list] = None) -> int:
             return {"READY_FOR_LOCAL_VERIFICATION": 0, "BLOCKED": 2, "INCOMPLETE": 3}[output["status"]]
         elif args.command == "analyze":
             output = compile_case(load_case(args.case_root))
+        elif args.command == "audit-assumptions":
+            output = audit_assumptions(load_case(args.case_root))
+        elif args.command == "verify-assumption-audit":
+            report = _read_assumption_report(args.report, args.expected_report_sha256)
+            output = verify_assumption_audit(load_case(args.case_root), report)
         elif args.command == "classify":
             case = load_case(args.case_root)
             output = execute_classifiers(case, args.case_root.resolve(strict=True))
@@ -983,6 +1023,8 @@ def main(argv: Optional[list] = None) -> int:
         ):
             return 2
         if args.command in {
+            "audit-assumptions",
+            "verify-assumption-audit",
             "preflight-receipts",
             "preflight-challenge",
             "preflight-goal-claim-plan",
