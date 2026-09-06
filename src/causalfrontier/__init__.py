@@ -4,6 +4,7 @@ from .version import DISTRIBUTION_VERSION
 
 __version__ = DISTRIBUTION_VERSION
 
+from .assumptions import audit_assumptions, verify_assumption_audit
 from .attestation import verify_rfc3161_attestation
 from .blind import (
     bind_blind_selection_precommitment,
@@ -29,6 +30,7 @@ from .challenge import preflight_challenge
 from .claim import goal_claim_contract, goal_claim_contract_sha256, preflight_goal_claim_plan
 from .comparators import lock_reference_selections
 from .frontier import compile_case, simulate_branch
+from .group_assumptions import audit_assumption_groups, verify_group_assumption_audit
 from .horse_race import (
     execute_synthetic_horse_race,
     prepare_synthetic_horse_race_plan,
@@ -68,6 +70,8 @@ from .sentinel_witness import (
 __all__ = [
     "append_event",
     "assess_registry_candidate",
+    "audit_assumption_groups",
+    "audit_assumptions",
     "bind_blind_selection_precommitment",
     "build_capsule",
     "build_sanitized_entrant_view",
@@ -109,8 +113,10 @@ __all__ = [
     "simulate_branch",
     "validate_case",
     "validate_neutral_action_catalog",
+    "verify_assumption_audit",
     "verify_calibration_v2_report",
     "verify_capsule",
+    "verify_group_assumption_audit",
     "verify_ledger",
     "verify_neutral_baseline_exercise",
     "verify_rfc3161_attestation",

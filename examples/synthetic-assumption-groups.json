@@ -1,0 +1,54 @@
+{
+  "case_sha256": "ebdcd22a4832b237a5a2565910db61151495553dfac0029b407936c6e4210fef",
+  "groups": [
+    {
+      "id": "group:global-recompute",
+      "members": [
+        {
+          "experiment_id": "experiment:global-recompute",
+          "outcome_id": "outcome:global-context",
+          "world_id": "world:context-confounding"
+        },
+        {
+          "experiment_id": "experiment:global-recompute",
+          "outcome_id": "outcome:global-invariant",
+          "world_id": "world:invariant-mechanism"
+        }
+      ],
+      "rationale": "Synthetic software example: withdraw the two authored surviving relations together; no independently warranted shared premise is asserted."
+    },
+    {
+      "id": "group:held-out-invariance",
+      "members": [
+        {
+          "experiment_id": "experiment:held-out-invariance",
+          "outcome_id": "outcome:held-context",
+          "world_id": "world:context-confounding"
+        },
+        {
+          "experiment_id": "experiment:held-out-invariance",
+          "outcome_id": "outcome:held-invariant",
+          "world_id": "world:invariant-mechanism"
+        }
+      ],
+      "rationale": "Synthetic software example: withdraw the two authored surviving relations together; no independently warranted shared premise is asserted."
+    },
+    {
+      "id": "group:negative-control",
+      "members": [
+        {
+          "experiment_id": "experiment:negative-control",
+          "outcome_id": "outcome:control-tracks-context",
+          "world_id": "world:context-confounding"
+        },
+        {
+          "experiment_id": "experiment:negative-control",
+          "outcome_id": "outcome:control-null",
+          "world_id": "world:invariant-mechanism"
+        }
+      ],
+      "rationale": "Synthetic software example: withdraw the two authored surviving relations together; no independently warranted shared premise is asserted."
+    }
+  ],
+  "schema_version": "causalfrontier.assumption-groups.v1"
+}

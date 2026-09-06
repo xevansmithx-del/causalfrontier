@@ -10,6 +10,8 @@ answers your question.
   report one public/synthetic workflow.
 - [Local diagnostics](diagnostics.md) — check development-source prerequisites
   and interpret machine-readable runtime failures.
+- [Single-cell withdrawal audit](assumption-audit.md) — inspect dependence on
+  authored relations, including withdrawals that require reauthoring.
 - [Architecture](architecture.md) — system boundary, data flow, and design
   decisions.
 - [Validation](../VALIDATION.md) — exact tests, hostile cases, runtime coverage,

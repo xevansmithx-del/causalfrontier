@@ -22,6 +22,8 @@ It does **not** discover a drug, infer a causal effect, validate a biological me
 
 - **New users:** [source-tree reproduction pilot](docs/independent-reproduction.md)
 - **Environment troubleshooting:** [local prerequisite and runtime diagnostics](docs/diagnostics.md)
+- **Case authors:** [single prediction-cell withdrawal audit](docs/assumption-audit.md)
+- **Shared authored premises:** [declared grouped withdrawal audit](docs/group-assumption-audit.md)
 - **Reviewers:** [validation record](VALIDATION.md) and [exact source manifest](SOURCE_SHA256SUMS.txt)
 - **Researchers:** [scientific problem and falsifiable success criteria](docs/problem-selection.md)
 - **Maintainers:** [contribution guide](CONTRIBUTING.md), [governance](GOVERNANCE.md), and [support](SUPPORT.md)
