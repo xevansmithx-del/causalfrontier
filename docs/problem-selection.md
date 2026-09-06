@@ -94,3 +94,26 @@ finite oracle as the next implementation milestone. Do not change the baseline
 selector, infer dependencies from shared citations, or characterize this as new
 sensitivity theory. This resolves a bounded representation-audit gap; independently
 authored scientific utility and all empirical breakthrough gates above remain open.
+
+## Aggregate-evidence fit successor — 2026-09-06
+
+Selected next: preserve reported aggregate estimates before attempting a source-
+to-question translation. The [evidence-fit audit](evidence-fit.md) compares an
+authored target with source-bound endpoint, population, contrast, time and effect-
+type declarations. It exposes missing or incompatible labels without substituting
+integer observations, a pooled score or automatic semantic inference.
+
+A bounded primary-source review does not support a broad novelty claim for
+temporal evidence aggregation: Open Targets already reports timestamping evidence
+and reconstructing target–disease support over time, with publication and curation
+dates distinguished. [Primary paper](https://www.nature.com/articles/s41467-025-67180-y).
+Trialstreamer already describes extracting study information and relationships
+from biomedical abstracts. [Primary paper](https://arxiv.org/abs/2005.10865).
+These are adjacent systems, not measured losers in a comparison with this tool.
+
+The next useful empirical test is whether independently encoded and adjudicated
+cases show fewer missed source-to-question incompatibilities, without excess
+false alarms or burden, against a frozen simple schema/spreadsheet comparator.
+This is an evaluation direction, not a registered experiment or completed result.
+The new audit can reveal authored mismatches; it cannot authenticate those
+declarations or demonstrate a life-saving effect. Existing kill gates remain open.

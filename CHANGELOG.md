@@ -4,6 +4,12 @@ All notable changes to CausalFrontier are documented here.
 
 ## Unreleased
 
+- Add a source-bound aggregate evidence-fit audit and exact report replay.
+  Preserve effect types, decimal estimates, confidence levels, denominator
+  declarations and source-date precision. Compare authored source/target labels
+  without semantic authentication, estimate pooling, historical admission,
+  scientific scoring or changes to the existing classifier.
+
 - Add `freeze-draft` and a worked authoring guide. Explicit draft digest
   placeholders become a new validated case without changing authored dates,
   inferring scientific declarations, overwriting inputs, or enabling scoring.

@@ -35,6 +35,7 @@ from .claim import preflight_goal_claim_plan, verify_goal_claim_plan_preflight
 from .classifier import execute_classifiers
 from .comparators import lock_reference_selections
 from .doctor import diagnose_environment
+from .evidence_fit import audit_evidence_fit, verify_evidence_fit
 from .frontier import compile_case, simulate_branch
 from .group_assumptions import audit_assumption_groups, verify_group_assumption_audit
 from .horse_race import (
@@ -108,6 +109,18 @@ def _read_assumption_report(path: Path, expected_sha256: str, *, label: str = "a
     return value
 
 
+def _read_evidence_bytes(path: Path) -> bytes:
+    """Acquire one bounded no-follow snapshot; the audit hashes these same bytes."""
+    try:
+        with ExitStack() as stack:
+            descriptor = receipt_io._root_descriptor(stack, path.parent)
+            return receipt_io._snapshot(descriptor, path.name)
+    except (CausalFrontierError, OSError, ValueError):
+        raise CausalFrontierError(
+            "evidence-fit input rejected", reason_code="EVIDENCE_FIT_REJECTED", operation="cli.evidence_fit"
+        ) from None
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(
         prog="causalfrontier",
@@ -169,6 +182,15 @@ def parser() -> argparse.ArgumentParser:
     receipts.add_argument(
         "--expected-set-sha256", required=True, help="independently preserved receipt-set byte digest"
     )
+    for name in ("audit-evidence-fit", "verify-evidence-fit"):
+        evidence_fit = commands.add_parser(name, help="compare source-bound declarations without admission or scoring")
+        evidence_fit.add_argument("receipt_root", type=Path)
+        evidence_fit.add_argument("extraction", type=Path)
+        evidence_fit.add_argument("--expected-set-sha256", required=True)
+        evidence_fit.add_argument("--expected-extraction-sha256", required=True)
+        if name == "verify-evidence-fit":
+            evidence_fit.add_argument("report", type=Path)
+            evidence_fit.add_argument("--expected-report-sha256", required=True)
     challenge = commands.add_parser(
         "preflight-challenge", help="bind a challenge cohort; scientific scoring stays disabled"
     )
@@ -648,6 +670,21 @@ def main(argv: Optional[list] = None) -> int:
             output = execute_classifiers(case, args.case_root.resolve(strict=True))
         elif args.command == "preflight-receipts":
             output = preflight_receipts(args.receipt_root, args.expected_set_sha256)
+        elif args.command in {"audit-evidence-fit", "verify-evidence-fit"}:
+            extraction = _read_evidence_bytes(args.extraction)
+            if args.command == "audit-evidence-fit":
+                output = audit_evidence_fit(
+                    args.receipt_root, args.expected_set_sha256, extraction, args.expected_extraction_sha256
+                )
+            else:
+                output = verify_evidence_fit(
+                    args.receipt_root,
+                    args.expected_set_sha256,
+                    extraction,
+                    args.expected_extraction_sha256,
+                    _read_evidence_bytes(args.report),
+                    args.expected_report_sha256,
+                )
         elif args.command == "preflight-challenge":
             output = preflight_challenge(args.challenge_root, args.expected_manifest_sha256, args.expected_sequence)
         elif args.command == "preflight-goal-claim-plan":
@@ -1064,6 +1101,8 @@ def main(argv: Optional[list] = None) -> int:
             "audit-assumption-groups",
             "verify-group-assumption-audit",
             "preflight-receipts",
+            "audit-evidence-fit",
+            "verify-evidence-fit",
             "preflight-challenge",
             "preflight-goal-claim-plan",
             "preflight-sentinel-generation-plan",

@@ -30,6 +30,7 @@ from .capsule import build_capsule, record_rehearsal, verify_capsule
 from .challenge import preflight_challenge
 from .claim import goal_claim_contract, goal_claim_contract_sha256, preflight_goal_claim_plan
 from .comparators import lock_reference_selections
+from .evidence_fit import audit_evidence_fit, verify_evidence_fit
 from .frontier import compile_case, simulate_branch
 from .group_assumptions import audit_assumption_groups, verify_group_assumption_audit
 from .horse_race import (
@@ -73,6 +74,7 @@ __all__ = [
     "assess_registry_candidate",
     "audit_assumption_groups",
     "audit_assumptions",
+    "audit_evidence_fit",
     "bind_blind_selection_precommitment",
     "build_capsule",
     "build_sanitized_entrant_view",
@@ -118,6 +120,7 @@ __all__ = [
     "verify_assumption_audit",
     "verify_calibration_v2_report",
     "verify_capsule",
+    "verify_evidence_fit",
     "verify_group_assumption_audit",
     "verify_ledger",
     "verify_neutral_baseline_exercise",

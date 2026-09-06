@@ -1,5 +1,42 @@
 # Validation record
 
+## Aggregate evidence-fit audit — development source, 2026-09-06
+
+The [evidence-fit contract](docs/evidence-fit.md) preserves typed reported
+quantities and compares authored source/target declarations. The complete local
+normal-Python suite passed **1,228 tests** on Python 3.14.5/macOS, with **88.26%**
+statement coverage (1,137 predecessor tests plus 91 new API/CLI checks). This
+coverage percentage is not a scientific reliability estimate. Hosted checks
+remain tied to the exact PR head, not inherited from prior commits.
+
+The public synthetic example retains three artificial HR, rate-ratio and mean-
+difference records, with by-cutoff, after-cutoff and unknown date cases. Tests
+exercise nulls, source identity/version/role separation, precision intervals,
+denominator types, malformed decimals, numeric inconsistency retention, deep and
+escaped hostile JSON, authority/type forgery, work/output bounds, unsafe source
+files, full-report forgery and exact normal/optimized report-byte equality.
+Twenty-three selected regression cases cover temporal leakage, privacy,
+authority, the existing 72-coordinate branch contract, external-head rollback,
+unsafe files and hostile transport. No existing classifier or branch schema changes.
+
+A separate private, known-source engineering rehearsal retained nine reported
+aggregate quantities from five acquired source representations across PCSK9,
+EPOCH and ACTT-1. Three suites each passed normal, repeated, optimized and exact
+verification CLI invocations, with observed source bytes unchanged. They preserve
+the 2012 PCSK9 cutoff despite later pre-FOURIER papers, EPOCH's 97.51% intervals
+and unresolved full-text availability date, and ACTT-1's distinct recovery rate
+ratio versus mortality hazard ratio. Unextracted counts and horizons stay null.
+Raw publication content and acquisition wrappers are not redistributed here;
+this private rehearsal is not an independently reproducible public benchmark.
+
+All nine records remain historically ineligible. Source targets and extractions
+were internally authored with known outcomes, not blinded or independently
+adjudicated. Literal mismatch counts are encoding-dependent diagnostics, not
+detected scientific errors, accuracy, biological validation, utility or speedup.
+Admitted semantic controls, prospective scores, independent human validation
+and demonstrated life-saving effects remain zero. This is a software-source
+change, not a packaged release, scientific claim or publication-readiness upgrade.
+
 ## Single prediction-cell withdrawal audit — development source, 2026-09-06
 
 The [audit and reproduction guide](docs/assumption-audit.md) defines a bounded
