@@ -12,6 +12,7 @@ from typing import Any, Dict, Optional
 from . import receipts as receipt_io
 from .assumptions import audit_assumptions, verify_assumption_audit
 from .attestation import verify_rfc3161_attestation
+from .authoring import freeze_draft
 from .blind import (
     bind_blind_selection_precommitment,
     build_sanitized_entrant_view,
@@ -129,6 +130,11 @@ def parser() -> argparse.ArgumentParser:
     doctor.add_argument("--expected-openssl-sha256", help="caller-preserved SHA-256 of the trusted executable")
     analyze = commands.add_parser("analyze", help="analyze a frozen case root")
     analyze.add_argument("case_root", type=Path)
+    freeze = commands.add_parser(
+        "freeze-draft", help="fill explicit draft digest placeholders and validate a new no-clobber case"
+    )
+    freeze.add_argument("draft_root", type=Path, help="directory containing draft.json and declared source files")
+    freeze.add_argument("destination", type=Path, help="new directory outside the draft; parent must already exist")
     assumptions = commands.add_parser(
         "audit-assumptions", help="audit single prediction-cell withdrawals without executing classifiers"
     )
@@ -618,6 +624,8 @@ def main(argv: Optional[list] = None) -> int:
             return {"READY_FOR_LOCAL_VERIFICATION": 0, "BLOCKED": 2, "INCOMPLETE": 3}[output["status"]]
         elif args.command == "analyze":
             output = compile_case(load_case(args.case_root))
+        elif args.command == "freeze-draft":
+            output = freeze_draft(args.draft_root, args.destination)
         elif args.command == "audit-assumptions":
             output = audit_assumptions(load_case(args.case_root))
         elif args.command == "verify-assumption-audit":

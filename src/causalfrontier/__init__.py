@@ -6,6 +6,7 @@ __version__ = DISTRIBUTION_VERSION
 
 from .assumptions import audit_assumptions, verify_assumption_audit
 from .attestation import verify_rfc3161_attestation
+from .authoring import freeze_draft
 from .blind import (
     bind_blind_selection_precommitment,
     build_sanitized_entrant_view,
@@ -83,6 +84,7 @@ __all__ = [
     "execute_synthetic_horse_race",
     "exercise_neutral_baselines",
     "finalize_calibration_v2",
+    "freeze_draft",
     "goal_claim_contract",
     "goal_claim_contract_sha256",
     "load_case",

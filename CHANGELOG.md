@@ -4,6 +4,11 @@ All notable changes to CausalFrontier are documented here.
 
 ## Unreleased
 
+- Add `freeze-draft` and a worked authoring guide. Explicit draft digest
+  placeholders become a new validated case without changing authored dates,
+  inferring scientific declarations, overwriting inputs, or enabling scoring.
+  Reject deeply nested or excessive-work drafts before preparation, with
+  bounded, payload-free diagnostics rather than raw recursion tracebacks.
 - Add a bounded, read-only single prediction-cell withdrawal audit and full
   report replay. Preserve invalid variants as requiring reauthoring, distinguish
   frontier membership from tied co-minimax membership and strict pair separation,
