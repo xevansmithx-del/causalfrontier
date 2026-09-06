@@ -127,6 +127,15 @@ draft JSON, 1 MiB per source, and 16 MiB total. Keep notes and editor backups
 outside the draft root. The destination's parent must already exist and must
 not traverse symlinks; the new directory must be outside the draft.
 
+Before source preparation or recursive model validation, the draft also passes
+the shared strict JSON/work guard: depth at most 32, 65,536 value nodes, 8,192
+items in one container, 32 experiments, 256 total outcomes, and 4,096 total
+predictions. These are authoring-work limits, not scientific sample-size limits.
+Excess input is rejected without truncation or output creation. Guard and
+recursion-limit diagnostics use fixed messages and never echo the rejected
+payload; machine-readable errors identify `AUTHORING_INPUT_LIMIT_EXCEEDED`
+(or `AUTHORING_INPUT_REJECTED` for unsupported structure).
+
 On invalid declarations, missing input, or an existing destination, the CLI
 exits `2`, prints an error to stderr, and emits no success receipt. For
 machine-readable errors, put `--error-format json` before `freeze-draft`.

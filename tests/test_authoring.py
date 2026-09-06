@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+from copy import deepcopy
 
 import pytest
 
@@ -258,3 +259,138 @@ def test_normal_optimized_authoring_byte_parity(draft_root, tmp_path, project_ro
         roots.append(_bytes(destination))
     assert outputs[0] == outputs[1]
     assert roots[0] == roots[1]
+
+
+@pytest.mark.parametrize("depth", [33, 500, 700])
+@pytest.mark.parametrize("error_format", ["text", "json"])
+def test_nested_draft_rejected_before_preparation_without_echo(
+    draft_root, tmp_path, monkeypatch, capsys, depth, error_format
+):
+    marker = "SYNTHETIC_REJECTED_PAYLOAD_DO_NOT_ECHO"
+    draft = read_json(draft_root / "draft.json")
+    nested = marker
+    for _ in range(depth):
+        nested = [nested]
+    draft[marker] = nested
+    _write_draft(draft_root, draft)
+    before = _bytes(draft_root)
+
+    def forbidden(*_args):
+        pytest.fail("the structural guard must reject before draft preparation")
+
+    monkeypatch.setattr(authoring, "_prepare_draft", forbidden)
+    assert main(["--error-format", error_format, "freeze-draft", str(draft_root), str(tmp_path / "new")]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert marker not in captured.err
+    assert "Traceback" not in captured.err
+    if error_format == "json":
+        error = json.loads(captured.err)
+        assert error["reason_code"] == "AUTHORING_INPUT_LIMIT_EXCEEDED"
+        assert error["operation"] == "freeze_draft"
+    assert not (tmp_path / "new").exists()
+    assert _bytes(draft_root) == before
+
+
+@pytest.mark.parametrize("bound", ["nodes", "container", "experiments", "outcomes", "predictions"])
+def test_authoring_work_bounds_reject_before_source_preparation(draft_root, tmp_path, monkeypatch, bound):
+    draft = read_json(draft_root / "draft.json")
+    if bound == "nodes":
+        draft["unregistered_field"] = [[None] * 1024 for _ in range(64)]
+    elif bound == "container":
+        draft["unregistered_field"] = [None] * 8193
+    elif bound == "experiments":
+        draft["experiments"] = [deepcopy(draft["experiments"][0]) for _ in range(33)]
+    elif bound == "outcomes":
+        draft["experiments"][0]["outcomes"] = [None] * 257
+    else:
+        draft["experiments"][0]["predictions"] = [None] * 4097
+    _write_draft(draft_root, draft)
+    before = _bytes(draft_root)
+    observed = []
+    snapshot = authoring.receipt_io._snapshot
+
+    def reading(descriptor, relative):
+        observed.append(relative)
+        return snapshot(descriptor, relative)
+
+    def forbidden(*_args):
+        pytest.fail("excessive work must not reach preparation")
+
+    monkeypatch.setattr(authoring.receipt_io, "_snapshot", reading)
+    monkeypatch.setattr(authoring, "_prepare_draft", forbidden)
+    with pytest.raises(CausalFrontierError) as caught:
+        freeze_draft(draft_root, tmp_path / "new")
+    assert caught.value.reason_code == "AUTHORING_INPUT_LIMIT_EXCEEDED"
+    assert observed == ["draft.json"]
+    assert not (tmp_path / "new").exists()
+    assert _bytes(draft_root) == before
+
+
+def test_exact_experiment_work_limit_is_accepted_without_truncation(draft_root, tmp_path):
+    draft = read_json(draft_root / "draft.json")
+    template = draft["experiments"][0]
+    draft["experiments"] = [{**deepcopy(template), "id": "experiment:copy-%03d" % index} for index in range(32)]
+    _write_draft(draft_root, draft)
+    report = freeze_draft(draft_root, tmp_path / "new")
+    assert report["status"] == authoring.STATUS
+    assert len(load_case(tmp_path / "new")["experiments"]) == 32
+
+
+def test_unsupported_guard_input_uses_authoring_specific_payload_free_error():
+    marker = "SYNTHETIC_REJECTED_PAYLOAD_DO_NOT_ECHO"
+    with pytest.raises(CausalFrontierError) as caught:
+        authoring._guard_draft({"experiments": marker})
+    assert caught.value.reason_code == "AUTHORING_INPUT_REJECTED"
+    assert caught.value.operation == "freeze_draft"
+    assert marker not in str(caught.value)
+
+
+@pytest.mark.parametrize("phase", ["prepare", "final-replay"])
+@pytest.mark.parametrize("error_format", ["text", "json"])
+def test_unexpected_recursion_failure_is_structured_and_cleanup_safe(
+    draft_root, tmp_path, monkeypatch, capsys, phase, error_format
+):
+    marker = "SYNTHETIC_RECURSION_DETAIL_DO_NOT_ECHO"
+
+    def failing(*_args):
+        raise RecursionError(marker)
+
+    monkeypatch.setattr(authoring, "_prepare_draft" if phase == "prepare" else "load_case", failing)
+    before = _bytes(draft_root)
+    assert main(["--error-format", error_format, "freeze-draft", str(draft_root), str(tmp_path / "new")]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert marker not in captured.err
+    assert "Traceback" not in captured.err
+    if error_format == "json":
+        assert json.loads(captured.err)["reason_code"] == "AUTHORING_INPUT_LIMIT_EXCEEDED"
+    assert not (tmp_path / "new").exists()
+    assert _bytes(draft_root) == before
+
+
+def test_normal_optimized_nested_draft_rejection_byte_parity(draft_root, tmp_path, project_root):
+    marker = "SYNTHETIC_REJECTED_PAYLOAD_DO_NOT_ECHO"
+    draft = read_json(draft_root / "draft.json")
+    nested = marker
+    for _ in range(500):
+        nested = [nested]
+    draft[marker] = nested
+    _write_draft(draft_root, draft)
+    errors = []
+    for optimized, seed in ((False, "1"), (True, "77")):
+        destination = tmp_path / ("optimized" if optimized else "normal")
+        command = [sys.executable, *(["-O"] if optimized else []), "-B", "-m", "causalfrontier"]
+        process = subprocess.run(
+            [*command, "--error-format", "json", "freeze-draft", str(draft_root), str(destination)],
+            capture_output=True,
+            check=False,
+            timeout=30,
+            env={**os.environ, "PYTHONHASHSEED": seed, "PYTHONPATH": str(project_root / "src")},
+        )
+        assert process.returncode == 2 and process.stdout == b""
+        assert marker.encode() not in process.stderr and b"Traceback" not in process.stderr
+        assert json.loads(process.stderr)["reason_code"] == "AUTHORING_INPUT_LIMIT_EXCEEDED"
+        assert not destination.exists()
+        errors.append(process.stderr)
+    assert errors[0] == errors[1]

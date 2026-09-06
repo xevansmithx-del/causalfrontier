@@ -7,6 +7,13 @@ All notable changes to CausalFrontier are documented here.
 - Add `freeze-draft` and a worked authoring guide. Explicit draft digest
   placeholders become a new validated case without changing authored dates,
   inferring scientific declarations, overwriting inputs, or enabling scoring.
+  Reject deeply nested or excessive-work drafts before preparation, with
+  bounded, payload-free diagnostics rather than raw recursion tracebacks.
+- Add a bounded, read-only single prediction-cell withdrawal audit and full
+  report replay. Preserve invalid variants as requiring reauthoring, distinguish
+  frontier membership from tied co-minimax membership and strict pair separation,
+  and retain all eligible cells. This is an authoring-dependency diagnostic, not
+  a robustness certificate, new sensitivity method or scientific result.
 - Add opt-in, path-free runtime-exception diagnostics using numeric OS errors
   and distinct file, inventory, race, and subprocess reason codes. Existing
   successful protocol output and default error text remain unchanged.

@@ -7,6 +7,7 @@ from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
+from . import assumptions as input_limits
 from . import receipts as receipt_io
 from .canonical import (
     CausalFrontierError,
@@ -25,6 +26,20 @@ from .model import SCHEMA_VERSION, SOURCE_TEXT_LIMIT, branch_plan_sha256, load_c
 
 DRAFT_SCHEMA_VERSION = "causalfrontier.case-draft.v1"
 STATUS = "AUTHORED_DRAFT_FROZEN_STRUCTURAL_VALIDATION_ONLY"
+
+
+def _guard_draft(draft: Any) -> None:
+    """Bound iterative traversal before hashing, normalization, or deep copies."""
+    try:
+        input_limits._bounded_json(draft, "draft")
+        input_limits._case_work_bounds(draft)
+    except CausalFrontierError as exc:
+        limit = exc.reason_code == "ASSUMPTION_AUDIT_LIMIT_EXCEEDED"
+        raise CausalFrontierError(
+            "draft rejected by the bounded authoring input guard",
+            reason_code="AUTHORING_INPUT_LIMIT_EXCEEDED" if limit else "AUTHORING_INPUT_REJECTED",
+            operation="freeze_draft",
+        ) from None
 
 
 def _null_digest(record: dict[str, Any], field: str) -> None:
@@ -93,6 +108,7 @@ def freeze_draft(draft_root: Path, destination: Path) -> dict[str, Any]:
             inventory = receipt_io._inventory(root_fd)
             raw_draft = receipt_io._snapshot(root_fd, "draft.json")
             draft = read_json_bytes(raw_draft, "draft.json")
+            _guard_draft(draft)
             if not isinstance(draft, dict):
                 raise CausalFrontierError("draft.json must be an object")
             provenance = require_unique_ids(draft.get("provenance"), "draft provenance")
@@ -138,6 +154,12 @@ def freeze_draft(draft_root: Path, destination: Path) -> dict[str, Any]:
             except BaseException:
                 _remove_created_capsule(output, created_inode)
                 raise
+        except RecursionError:
+            raise CausalFrontierError(
+                "draft authoring exceeded the structural recursion limit",
+                reason_code="AUTHORING_INPUT_LIMIT_EXCEEDED",
+                operation="freeze_draft",
+            ) from None
         except OSError as exc:
             raise io_error(exc, "cannot freeze draft: %s" % exc, operation="freeze_draft") from exc
     return {
