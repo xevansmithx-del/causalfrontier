@@ -18,7 +18,15 @@ from typing import Any
 
 from . import receipts
 from .assumptions import _bounded_json
-from .canonical import CausalFrontierError, canonical_bytes, read_json_bytes, require_id, require_sha256, sha256_bytes
+from .canonical import (
+    CausalFrontierError,
+    canonical_bytes,
+    io_error,
+    read_json_bytes,
+    require_id,
+    require_sha256,
+    sha256_bytes,
+)
 from .model import BOUNDARY_CANONICAL, FIXED_PARAMETER, fixed_boundary
 
 EXTRACTION_SCHEMA = "causalfrontier.evidence-extraction.v1"
@@ -453,8 +461,17 @@ def audit_evidence_fit(
     except CausalFrontierError as exc:
         if exc.reason_code.startswith("EVIDENCE_FIT_"):
             raise
+        if exc.reason_code in {"ENVIRONMENT_DENIED", "ENVIRONMENT_UNSUPPORTED", "INPUT_MISSING", "IO_FAILURE"}:
+            raise CausalFrontierError("evidence-fit filesystem cannot be read safely", **exc.diagnostic()) from None
         _reject()
-    except (OSError, RecursionError, ValueError, TypeError, KeyError, OverflowError):
+    except OSError as exc:
+        classified = io_error(
+            exc, "evidence-fit filesystem cannot be read safely", operation="evidence_fit.audit_evidence_fit"
+        )
+        if classified.reason_code == "SAFE_PATH_REJECTED":
+            _reject()
+        raise classified from None
+    except (RecursionError, ValueError, TypeError, KeyError, OverflowError):
         _reject()
 
 
@@ -488,6 +505,15 @@ def verify_evidence_fit(
     except CausalFrontierError as exc:
         if exc.reason_code.startswith("EVIDENCE_FIT_"):
             raise
+        if exc.reason_code in {"ENVIRONMENT_DENIED", "ENVIRONMENT_UNSUPPORTED", "INPUT_MISSING", "IO_FAILURE"}:
+            raise CausalFrontierError("evidence-fit filesystem cannot be read safely", **exc.diagnostic()) from None
         _reject()
-    except (OSError, RecursionError, ValueError, TypeError, KeyError, OverflowError):
+    except OSError as exc:
+        classified = io_error(
+            exc, "evidence-fit filesystem cannot be read safely", operation="evidence_fit.verify_evidence_fit"
+        )
+        if classified.reason_code == "SAFE_PATH_REJECTED":
+            _reject()
+        raise classified from None
+    except (RecursionError, ValueError, TypeError, KeyError, OverflowError):
         _reject()

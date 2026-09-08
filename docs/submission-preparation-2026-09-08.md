@@ -20,6 +20,11 @@ report. They do not evaluate the full causal-world compiler or establish a
 new scientific method. The [protocol, cases, outputs and interpretation](../evaluation/evidence-fit-v1/README.md)
 accompany the [component manuscript draft](manuscript/evidence-fit-component.md).
 
+An additional Claude Science review used the interface settings Opus 5 and maximum
+reasoning effort. Its [checked disposition](reviews/evidence-fit-2026-09-08.md)
+records the exact reviewed snapshot, two minor findings, subsequent changes and
+limits. This is AI review, with accountable human review still pending.
+
 ## Provisional venue route
 
 SoftwareX's Original Software Publication is a **provisional preparation target**,
@@ -55,6 +60,10 @@ human review has happened. Recheck current policies before any submission.
 | Current-work contributions and final approval | Existing contribution record retained; additional roles and actual approval require human review |
 | Funding, interests and final AI disclosure | No external funding previously declared; final applicability, interest wording and assistance statement require author review |
 | Submission, payment and editor/reviewer correspondence | Require separate authorization; none performed |
+
+`CITATION.cff` now carries the recorded affiliation. No ORCID was supplied in this
+preparation step; any ORCID required by the selected venue remains an explicit
+metadata item, without reopening the settled author identity.
 
 The appropriate completion label is “submission-ready for [journal/article
 type]” only when every applicable item has evidence and accountable human

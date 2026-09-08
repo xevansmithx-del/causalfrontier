@@ -6,6 +6,11 @@ scenario, and their projected outputs agree. Production source, fixture bytes,
 protocol, generator, baseline and runner were unchanged between the prerequisite
 commit and the completed run.
 
+The original evaluation files remain frozen. A [post-run clarification](ERRATA.md)
+scopes the preservation-field name and records the later diagnostic correction;
+the [replay instructions](README.md) distinguish original-source replay from
+current-API compatibility checks.
+
 | Family | Scenarios | Engine matches expectation | Baseline matches expectation | Paired agreement |
 | --- | ---: | ---: | ---: | ---: |
 | Four-factor label census | 81 | 81 | 81 | 81 |
