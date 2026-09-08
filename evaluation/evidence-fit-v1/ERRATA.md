@@ -49,3 +49,11 @@ retained v1 artifact, and the separate current-API compatibility check to compar
 the corrected API's reports. The wrapper does not remove or relax the original
 runner's source-identity check. No existing result is relabeled as an evaluation
 of the corrected source.
+
+
+The original `run.py --verify-existing` command refuses the corrected source
+with exit 1 and an uncaught `ValueError` traceback, which may include the local
+script path. This is the preserved frozen runner's behavior, not the corrected
+API's structured diagnostic contract. Current documentation and CI use
+`replay_frozen.py` to supply the original source; an older command should not be
+interpreted as a failure of that replay path.

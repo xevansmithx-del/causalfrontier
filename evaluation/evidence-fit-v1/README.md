@@ -30,6 +30,9 @@ The wrapper verifies a sealed archive of all 41 prerequisite files, extracts onl
 the verified bytes into a temporary directory, and invokes the unchanged original
 runner. It compares the complete 927-file output with the retained artifact.
 The original protocol, generator, baseline, runner and result files are preserved.
+`frozen-source-seal.json` is a descriptive record cross-checked by tests; runtime
+enforcement lives in the wrapper's fixed digests and original manifest bindings,
+so editing that sidecar cannot replace the runtime expectations.
 The third command separately compares the current API's complete reports with
 the retained reports. That is a post-review compatibility check, not a replacement
 of the original evaluation or a new scientific benchmark.

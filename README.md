@@ -80,14 +80,24 @@ causalfrontier verify /tmp/causalfrontier-capsule
 Rehearse a branch frozen before compilation:
 
 ```bash
+synthetic_rehearsal_branch_sha256="$(python - <<'PY'
+import json
+from pathlib import Path
+
+case = json.loads(Path("examples/synthetic-aggregate/case.json").read_text())
+print(next(item["branch_plan_sha256"] for item in case["experiments"]
+           if item["id"] == "experiment:held-out-invariance"))
+PY
+)"
+
 causalfrontier simulate \
   examples/synthetic-aggregate \
   experiment:held-out-invariance \
   outcome:held-invariant \
-  4fca74e460ea51cd257ab80060da8e594448e9324b2f805ad0f992bcc3e6c0b6
+  "$synthetic_rehearsal_branch_sha256"
 ```
 
-Append the rehearsal to capsule memory using the ledger head copied from compilation into an independent checkpoint:
+Using the branch digest above, append the rehearsal to capsule memory using the ledger head copied from compilation into an independent checkpoint:
 
 ```bash
 causalfrontier remember-rehearsal \
@@ -96,7 +106,7 @@ causalfrontier remember-rehearsal \
   2026-08-28T21:01:00Z \
   experiment:held-out-invariance \
   outcome:held-invariant \
-  4fca74e460ea51cd257ab80060da8e594448e9324b2f805ad0f992bcc3e6c0b6
+  "$synthetic_rehearsal_branch_sha256"
 ```
 
 Replace the external checkpoint with the newly returned head after every successful append. This compare-and-swap detects rollback only when the external copy is independently preserved. The operation never mutates the frozen case or analysis.
