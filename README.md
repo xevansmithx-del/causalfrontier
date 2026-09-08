@@ -30,6 +30,7 @@ It does **not** discover a drug, infer a causal effect, validate a biological me
 - **Researchers:** [scientific problem and falsifiable success criteria](docs/problem-selection.md)
 - **Maintainers:** [contribution guide](CONTRIBUTING.md), [governance](GOVERNANCE.md), and [support](SUPPORT.md)
 - **Journal planning:** [publication-readiness assessment](docs/publication-readiness-2026-09-04.md)
+- **Submission preparation:** [current scope and remaining evidence](docs/submission-preparation-2026-09-08.md)
 - **All documentation:** [documentation index](docs/index.md)
 
 ## What the prototype does

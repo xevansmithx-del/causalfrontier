@@ -35,6 +35,8 @@ answers your question.
   and their limits.
 - [Publication readiness](publication-readiness-2026-09-04.md) — venue-specific
   gates and the evidence-first route to submission.
+- [Submission preparation](submission-preparation-2026-09-08.md) — bounded
+  manuscript scope, provisional venue route and remaining approval/evidence items.
 
 ## Core protocol specifications
 
