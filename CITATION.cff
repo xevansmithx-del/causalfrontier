@@ -5,6 +5,7 @@ type: software
 authors:
   - family-names: Smith
     given-names: Evan
+    affiliation: "Independent Researcher, Pueblo, Colorado, USA"
 version: 0.1.0-alpha.5
 license: Apache-2.0
 repository-code: "https://github.com/xevansmithx-del/causalfrontier"

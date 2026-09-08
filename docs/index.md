@@ -35,11 +35,15 @@ answers your question.
   and their limits.
 - [Publication readiness](publication-readiness-2026-09-04.md) — venue-specific
   gates and the evidence-first route to submission.
+- [Submission preparation](submission-preparation-2026-09-08.md) — bounded
+  manuscript scope, provisional venue route and remaining approval/evidence items.
 
 ## Core protocol specifications
 
 - [Evidence receipts](receipt-v1.md)
 - [Declared aggregate evidence fit](evidence-fit.md)
+- [Finite synthetic evidence-fit evaluation](../evaluation/evidence-fit-v1/README.md)
+- [Evidence-fit component manuscript draft](manuscript/evidence-fit-component.md)
 - [Challenge protocol exercise](protocol-exercise-v1.md)
 - [Blind execution](blind-execution-v1.md)
 - [Complete-matrix horse race](horse-race-v1.md)

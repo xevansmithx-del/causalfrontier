@@ -1,5 +1,11 @@
 # Publication-readiness assessment — 2026-09-04
 
+**Later preparation-scope clarification:** see
+[8 September 2026](submission-preparation-2026-09-08.md). The evaluation ladder
+below is not a blanket requirement to recruit an outside panel before preparing
+a bounded software manuscript. Claim-specific evidence and venue requirements
+still apply. This historical assessment is retained with that distinction.
+
 **Policy clarification:** 2026-09-05 UTC. The engineering and adoption evidence
 below retains the original assessment's scope. This clarification adds no new
 scientific result, external reproduction, or journal submission.

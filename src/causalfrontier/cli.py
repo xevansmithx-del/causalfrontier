@@ -115,7 +115,22 @@ def _read_evidence_bytes(path: Path) -> bytes:
         with ExitStack() as stack:
             descriptor = receipt_io._root_descriptor(stack, path.parent)
             return receipt_io._snapshot(descriptor, path.name)
-    except (CausalFrontierError, OSError, ValueError):
+    except CausalFrontierError as exc:
+        if exc.reason_code in {"ENVIRONMENT_DENIED", "ENVIRONMENT_UNSUPPORTED", "INPUT_MISSING", "IO_FAILURE"}:
+            raise CausalFrontierError("evidence-fit filesystem cannot be read safely", **exc.diagnostic()) from None
+        raise CausalFrontierError(
+            "evidence-fit input rejected", reason_code="EVIDENCE_FIT_REJECTED", operation="cli.evidence_fit"
+        ) from None
+    except OSError as exc:
+        classified = io_error(
+            exc, "evidence-fit filesystem cannot be read safely", operation="cli._read_evidence_bytes"
+        )
+        if classified.reason_code == "SAFE_PATH_REJECTED":
+            raise CausalFrontierError(
+                "evidence-fit input rejected", reason_code="EVIDENCE_FIT_REJECTED", operation="cli.evidence_fit"
+            ) from None
+        raise classified from None
+    except ValueError:
         raise CausalFrontierError(
             "evidence-fit input rejected", reason_code="EVIDENCE_FIT_REJECTED", operation="cli.evidence_fit"
         ) from None
