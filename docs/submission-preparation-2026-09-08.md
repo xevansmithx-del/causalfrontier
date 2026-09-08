@@ -17,8 +17,8 @@ This iteration evaluates the evidence-fit component against a transparent
 table-rule comparator on disclosed synthetic cases. Its selected output
 projection and semantic counterexamples support a component-level software
 report. They do not evaluate the full causal-world compiler or establish a
-new scientific method. The exact protocol, cases, outputs and interpretation
-will accompany the manuscript draft in the completed evaluation package.
+new scientific method. The [protocol, cases, outputs and interpretation](../evaluation/evidence-fit-v1/README.md)
+accompany the [component manuscript draft](manuscript/evidence-fit-component.md).
 
 ## Provisional venue route
 
@@ -46,13 +46,14 @@ human review has happened. Recheck current policies before any submission.
 
 | Item | State after this preparation step |
 |---|---|
-| Public, reproducible finite component evaluation | In preparation; completed outputs must bind to the frozen protocol and source |
-| Component manuscript | Draft in preparation; human scientific and editorial review still needed |
+| Public, reproducible finite component evaluation | Complete for the stated 132-case synthetic projection; artifacts and optimized replay retained |
+| Component manuscript | First component draft delivered; human scientific and editorial review still needed |
 | Demonstrated contribution and journal fit | Open; synthetic contract agreement does not demonstrate practical research utility |
 | Full paper package | Open; venue template, final references, required metadata, suitable complete examples and cover letter remain to be finalized |
 | Exact submission code and archive | Open; reviewed development commit is distinct from an authorized release/archive |
-| Actual authors, affiliations and CRediT roles | Open; no identities or approvals may be invented |
-| Funding, interests and final AI disclosure | Human confirmation required |
+| Recorded author and affiliation | Evan Smith; Independent Researcher, Pueblo, Colorado, USA; identity is already settled |
+| Current-work contributions and final approval | Existing contribution record retained; additional roles and actual approval require human review |
+| Funding, interests and final AI disclosure | No external funding previously declared; final applicability, interest wording and assistance statement require author review |
 | Submission, payment and editor/reviewer correspondence | Require separate authorization; none performed |
 
 The appropriate completion label is “submission-ready for [journal/article

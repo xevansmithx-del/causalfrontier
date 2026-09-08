@@ -42,6 +42,8 @@ answers your question.
 
 - [Evidence receipts](receipt-v1.md)
 - [Declared aggregate evidence fit](evidence-fit.md)
+- [Finite synthetic evidence-fit evaluation](../evaluation/evidence-fit-v1/README.md)
+- [Evidence-fit component manuscript draft](manuscript/evidence-fit-component.md)
 - [Challenge protocol exercise](protocol-exercise-v1.md)
 - [Blind execution](blind-execution-v1.md)
 - [Complete-matrix horse race](horse-race-v1.md)

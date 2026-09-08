@@ -139,6 +139,9 @@ jobs:
           uv run --frozen --no-sync python .github/scripts/privacy_scan.py .
       - name: Replay optimized-runtime boundary
         run: |
+          uv run --frozen --no-sync python evaluation/evidence-fit-v1/run.py --verify-existing evaluation/evidence-fit-v1/results > "$RUNNER_TEMP/evidence-fit-normal.json"
+          uv run --frozen --no-sync python -O evaluation/evidence-fit-v1/run.py --verify-existing evaluation/evidence-fit-v1/results > "$RUNNER_TEMP/evidence-fit-optimized.json"
+          cmp "$RUNNER_TEMP/evidence-fit-normal.json" "$RUNNER_TEMP/evidence-fit-optimized.json"
           normal=$(uv run --frozen --no-sync python tests/optimized_probe.py)
           optimized=$(uv run --frozen --no-sync python -O tests/optimized_probe.py)
           test "$normal" = "$optimized"

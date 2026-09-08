@@ -26,6 +26,7 @@ It does **not** discover a drug, infer a causal effect, validate a biological me
 - **Case authors:** [single prediction-cell withdrawal audit](docs/assumption-audit.md)
 - **Shared authored premises:** [declared grouped withdrawal audit](docs/group-assumption-audit.md)
 - **Aggregate evidence:** [source-bound declared evidence-fit audit](docs/evidence-fit.md)
+- **Component evaluation:** [132 synthetic scenarios, table-rule comparison and manuscript draft](evaluation/evidence-fit-v1/README.md)
 - **Reviewers:** [validation record](VALIDATION.md) and [exact source manifest](SOURCE_SHA256SUMS.txt)
 - **Researchers:** [scientific problem and falsifiable success criteria](docs/problem-selection.md)
 - **Maintainers:** [contribution guide](CONTRIBUTING.md), [governance](GOVERNANCE.md), and [support](SUPPORT.md)
